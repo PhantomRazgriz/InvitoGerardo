@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gerardo — prova</title>
+<style>
+  :root{ --fondo:#14110f; --chiaro:#e6ddd0; --oro:#d9a93a; }
+  *{ box-sizing:border-box }
+  html,body{ margin:0; height:100% }
+  body{
+    background:var(--fondo); color:var(--chiaro);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:18px; padding:20px; overflow:hidden;
+  }
+  h1{ font-size:12px; letter-spacing:.24em; text-transform:uppercase; opacity:.45; margin:0; font-weight:600 }
+  canvas{ image-rendering:pixelated; display:block; max-width:100%; height:auto }
+  .comandi{ display:flex; gap:8px; flex-wrap:wrap; justify-content:center }
+  button{
+    font:inherit; font-size:13px; font-weight:600; cursor:pointer; color:var(--chiaro);
+    background:#241f1c; border:1px solid #3d3630; border-radius:6px; padding:9px 14px;
+  }
+  button:hover{ border-color:#5d534a }
+  button[data-attivo="1"]{ background:var(--oro); color:#231c10; border-color:var(--oro) }
+  .aiuto{ font-size:12px; opacity:.4; margin:0 }
+</style>
+</head>
+<body>
+
+<h1>Gerardo &middot; prova d'ambiente</h1>
+<canvas id="tela"></canvas>
+
+<div class="comandi">
+  <button data-azione="svapo">Svapata</button>
+  <button data-azione="occhiali">Occhiali sulla fronte</button>
+  <button data-azione="griglia">Griglia</button>
+</div>
+<p class="aiuto">Frecce o WASD per muoverlo nella stanza &middot; barra spaziatrice per la svapata</p>
+
+<script src="arte.js"></script>
+<script>
+"use strict";
+const A = window.ARTE;
+
+const L = 260, H = 195, ORIG_X = L / 2, ORIG_Y = 52;
+const tela = document.getElementById('tela');
+const ctx = tela.getContext('2d');
+
+let scala = 1;
+function ridimensiona(){
+  scala = Math.max(2, Math.min(6,
+    Math.floor(Math.min(window.innerWidth / L, (window.innerHeight - 170) / H))));
+  tela.width = L * scala; tela.height = H * scala;
+  ctx.imageSmoothingEnabled = false;
+}
+window.addEventListener('resize', ridimensiona);
+ridimensiona();
+
+// il pittore: sa solo mettere un punto. Lo stesso che usa il renderer offline.
+const P = {
+  punto(x, y, colore){
+    if (!colore) return;
+    ctx.fillStyle = colore;
+    ctx.fillRect(Math.round(x + ORIG_X) * scala, Math.round(y + ORIG_Y) * scala, scala, scala);
+  }
+};
+
+let fase = 0, colonna = 3, riga = 3, occhialiAlzati = false, griglia = false;
+let azione = null, inizioAzione = 0;
+
+function svapata(){
+  if (azione) return;                  // una alla volta
+  azione = 'svapo';
+  inizioAzione = fase;
+  document.querySelector('[data-azione="svapo"]').dataset.attivo = '1';
+}
+
+// movimento: un passo per pressione, dentro i muri
+const passi = {
+  ArrowUp:[0,-1], ArrowDown:[0,1], ArrowLeft:[-1,0], ArrowRight:[1,0],
+  w:[0,-1], s:[0,1], a:[-1,0], d:[1,0]
+};
+addEventListener('keydown', e => {
+  if (e.key === ' '){ e.preventDefault(); svapata(); return; }
+  const p = passi[e.key] || passi[e.key.toLowerCase?.()];
+  if (!p) return;
+  e.preventDefault();
+  colonna = Math.max(0, Math.min(A.COL - 1, colonna + p[0]));
+  riga    = Math.max(0, Math.min(A.RIG - 1, riga    + p[1]));
+});
+
+function disegnaGriglia(){
+  ctx.strokeStyle = 'rgba(217,169,58,.30)';
+  ctx.lineWidth = 1;
+  for (let r = 0; r <= A.RIG; r++)
+    for (let c = 0; c <= A.COL; c++){
+      const v = A.vertice(c, r), e = A.vertice(c + 1, r);
+      ctx.beginPath();
+      ctx.moveTo((v[0] + ORIG_X) * scala, (v[1] + ORIG_Y) * scala);
+      ctx.lineTo((e[0] + ORIG_X) * scala, (e[1] + ORIG_Y) * scala);
+      ctx.stroke();
+    }
+}
+
+function ciclo(){
+  fase++;
+  // l'animazione ha un suo tempo, che parte da zero quando la lanci
+  let faseAzione = fase;
+  if (azione){
+    faseAzione = fase - inizioAzione;
+    if (faseAzione >= A.SVAPO.ciclo){
+      azione = null;
+      document.querySelector('[data-azione="svapo"]').dataset.attivo = '0';
+    }
+  }
+  ctx.fillStyle = '#14110f';
+  ctx.fillRect(0, 0, tela.width, tela.height);
+  A.scena(P, { fase: azione ? faseAzione : fase, colonna, riga, occhialiAlzati, azione });
+  if (griglia) disegnaGriglia();
+  requestAnimationFrame(ciclo);
+}
+
+document.querySelectorAll('[data-azione]').forEach(b => {
+  b.addEventListener('click', () => {
+    const a = b.dataset.azione;
+    if (a === 'svapo'){
+      svapata();
+    } else if (a === 'occhiali'){
+      occhialiAlzati = !occhialiAlzati;
+      b.dataset.attivo = occhialiAlzati ? '1' : '0';
+      b.textContent = occhialiAlzati ? 'Occhiali sugli occhi' : 'Occhiali sulla fronte';
+    } else {
+      griglia = !griglia;
+      b.dataset.attivo = griglia ? '1' : '0';
+    }
+  });
+});
+
+ciclo();
+</script>
+</body>
+</html>

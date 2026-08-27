@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gerardo compie sessant'anni</title>
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Non dirglielo.">
+<meta property="og:description" content="Gerardo compie sessant'anni. Sabato 7 novembre, San Giovanni Rotondo.">
+<!-- assoluto e non relativo: WhatsApp e Telegram ignorano i percorsi
+     relativi e mostrerebbero il link senza immagine -->
+<meta property="og:image" content="https://phantomrazgriz.github.io/InvitoGerardo/anteprime/social.png">
+<meta property="og:url" content="https://phantomrazgriz.github.io/InvitoGerardo/">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="theme-color" content="#0b0a09">
+
+<style>
+  :root{ --chiaro:#f2ece2; --tenue:#9c9184; --oro:#d9a93a; --rosso:#c4553f }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent }
+  html,body{ margin:0; height:100%; overflow:hidden; background:#0b0a09 }
+  body{
+    color:var(--chiaro); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    display:flex; flex-direction:column; user-select:none;
+  }
+
+  #palco{ flex:1; display:flex; align-items:center; justify-content:center; min-height:0; overflow:hidden; width:100% }
+  canvas{ image-rendering:pixelated; display:block; flex:0 0 auto; max-height:100% }
+
+  /* la cornice del racconto, come nei giochi di una volta */
+  #cornice{
+    margin:0 auto 5vh; width:min(620px, 92vw); min-height:132px;
+    border:2px solid #4a4036; border-radius:12px;
+    background:linear-gradient(180deg, rgba(24,20,17,.97), rgba(16,13,11,.97));
+    box-shadow:0 0 0 3px #0b0a09, 0 14px 40px rgba(0,0,0,.6);
+    padding:20px 22px 26px; position:relative;
+    opacity:0; transition:opacity .5s ease;
+  }
+  #cornice.viva{ opacity:1 }
+
+  #testo{
+    margin:0; font-size:clamp(17px,4.5vw,21px); line-height:1.5; min-height:3em;
+    text-wrap:pretty;
+  }
+  #testo .segreto{ color:var(--rosso); font-weight:700 }
+  #testo .nome{ color:var(--oro); font-weight:700 }
+
+  #freccia{
+    position:absolute; right:16px; bottom:10px; color:var(--oro); font-size:15px;
+    opacity:0; animation:salta 1s infinite;
+  }
+  #freccia.viva{ opacity:1 }
+  @keyframes salta{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(4px) } }
+
+  #avanti{
+    display:none; margin:14px auto 0; font:inherit; font-weight:700;
+    font-size:clamp(15px,4vw,17px); letter-spacing:.08em;
+    color:#231c10; background:var(--oro); border:0; border-radius:999px;
+    padding:14px 34px; cursor:pointer; box-shadow:0 6px 22px rgba(217,169,58,.3);
+  }
+  #avanti.viva{ display:block }
+
+  #salta{
+    position:fixed; top:12px; right:12px; z-index:5;
+    font:inherit; font-size:12px; color:var(--tenue);
+    background:rgba(16,14,12,.7); border:1px solid #3a332c; border-radius:999px;
+    padding:7px 13px; cursor:pointer;
+  }
+  #salta:hover{ color:var(--chiaro); border-color:#5d534a }
+
+  #suggerimento{
+    position:absolute; left:0; right:0; bottom:-26px; text-align:center;
+    font-size:12px; color:var(--tenue); letter-spacing:.06em;
+  }
+</style>
+</head>
+<body>
+
+<button id="salta">Dammi solo data e luogo</button>
+
+<div id="palco"><canvas id="tela"></canvas></div>
+
+<div id="cornice">
+  <p id="testo"></p>
+  <span id="freccia">&#9660;</span>
+  <button id="avanti">AVANTI</button>
+  <span id="suggerimento">tocca per continuare</span>
+</div>
+
+<script src="arte.js"></script>
+<script src="salotto.js"></script>
+<script src="pigiama.js"></script>
+<script src="facile.js"></script>
+<script>
+"use strict";
+const A = window.ARTE;
+
+/* ==========================================================================
+   IL RACCONTO
+   ========================================================================== */
+const ATTI = [
+  [
+    'Lui è <span class="nome">Gerardo</span>.',
+    'Quest\u2019anno compirà sessant\u2019anni.',
+    'Cerca di non farlo notare, ma ci pensa spesso\u2026',
+    'Ed è ignaro che gli stiamo organizzando una festa.',
+    'Perciò aiutaci a tenerlo segreto: <span class="segreto">non condividere nulla di questo invito</span>.',
+    'Come puoi vedere non è molto paziente. Procediamo, o comincia a urlare.',
+    'È ora di mettere il pigiama.'
+  ],
+  [
+    'Ecco il suo angolo di paradiso.',
+    'Cerca di non fare troppo rumore\u2026',
+    '\u2026perché anche se il volume della TV è a <span class="nome">70</span>, potresti infastidirlo.'
+  ],
+  [
+    'Per lui, però, non esiste niente di complicato.',
+    'Si è rotto qualcosa? Si aggiusta.',
+    'Bisogna costruire da zero? Si costruisce.',
+    'Qualcuno ha un problema?',
+    'Anche quello ha una soluzione. Ed è sempre la stessa.',
+    'E se una cosa è semplicemente <b>impossibile</b>?',
+    '\u2026si aggiusta pure quella.'
+  ]
+];
+let attoCorrente = 0;
+let FRASI = ATTI[0];
+
+/* ==========================================================================
+   LA TELA
+   ========================================================================== */
+// due inquadrature: il vuoto nero del primo atto, e la stanza del secondo
+/* Due strategie diverse, perche' le due scene hanno bisogni opposti.
+
+   BUIO: non c'e' scenografia, solo lui su fondo nero. Quindi la tela puo'
+   essere stretta, e su telefono la scala sale: e' l'unico modo per non
+   avere un personaggio dell'otto per cento dello schermo.
+
+   SALOTTO: serve larghezza per divano e televisore. La tela resta ampia, ma
+   la scala si calcola su una LARGHEZZA SICURA - la parte centrale che deve
+   restare sempre visibile - e i lati eccedenti vengono tagliati. */
+const VISTE = {
+  buio:    { LARG:80,  ALT:64,  sicura:80  },
+  salotto: { LARG:124, ALT:104, sicura:124 },
+  facile:  { LARG:88,  ALT:68,  sicura:88  }
+};
+let vista = VISTE.buio;
+let LARG = vista.LARG, ALT = vista.ALT;
+const SUOLO = 56;
+
+const tela = document.getElementById('tela');
+const ctx = tela.getContext('2d');
+let scala = 4;
+
+function ridimensiona(){
+  LARG = vista.LARG; ALT = vista.ALT;
+  const l = window.innerWidth - 8;
+  const a = Math.max(150, window.innerHeight - 230);
+  // la scala guarda la larghezza SICURA, non tutta la tela
+  scala = Math.max(2, Math.min(9, Math.floor(Math.min(l / vista.sicura, a / ALT))));
+  tela.width = LARG * scala; tela.height = ALT * scala;
+  ctx.imageSmoothingEnabled = false;
+  preparaTampone();
+}
+addEventListener('resize', ridimensiona);
+// la prima chiamata arriva dopo la creazione del tampone, piu' sotto
+
+/* --------------------------------------------------------------------------
+   IL PITTORE — scrive nel buffer dei pixel, non chiama fillRect.
+
+   Prima ogni pixel era una fillRect: con 47.000 pixel per fotogramma
+   facevano quasi tre milioni di chiamate al secondo, e sul telefono era
+   ingestibile. Qui si scrive direttamente nei byte di una ImageData alla
+   risoluzione nativa, e alla fine del fotogramma si fa UN solo drawImage
+   ingrandito. Il costo per pixel crolla di circa cinquanta volte.
+   -------------------------------------------------------------------------- */
+const tampone = document.createElement('canvas');
+const tctx = tampone.getContext('2d');
+let immagine = null, byte = null, LARG_T = 0, ALT_T = 0, sfondoSalvato = null;
+
+function preparaTampone(){
+  LARG_T = LARG; ALT_T = ALT;
+  tampone.width = LARG_T; tampone.height = ALT_T;
+  immagine = tctx.createImageData(LARG_T, ALT_T);
+  byte = immagine.data;
+  sfondoSalvato = null;
+}
+
+// i colori si convertono una volta sola e si tengono in tabella
+const tinte = new Map();
+function tinta(c){
+  let v = tinte.get(c);
+  if (v) return v;
+  if (c[0] === '#')
+    v = [parseInt(c.slice(1,3),16), parseInt(c.slice(3,5),16), parseInt(c.slice(5,7),16), 255];
+  else {
+    const m = c.match(/[\d.]+/g);
+    v = [+m[0], +m[1], +m[2], Math.round((m[3] === undefined ? 1 : +m[3]) * 255)];
+  }
+  tinte.set(c, v);
+  return v;
+}
+
+const P = {
+  punto(x, y, colore){
+    if (!colore) return;
+    x = (x + 0.5) | 0; y = (y + 0.5) | 0;
+    if (x < 0 || y < 0 || x >= LARG_T || y >= ALT_T) return;
+    const t = tinta(colore), i = (y * LARG_T + x) << 2;
+    if (t[3] === 255){
+      byte[i] = t[0]; byte[i+1] = t[1]; byte[i+2] = t[2]; byte[i+3] = 255;
+    } else {
+      const a = t[3] / 255, b = 1 - a;
+      byte[i]   = byte[i]   * b + t[0] * a;
+      byte[i+1] = byte[i+1] * b + t[1] * a;
+      byte[i+2] = byte[i+2] * b + t[2] * a;
+      byte[i+3] = 255;
+    }
+  }
+};
+
+function pulisciTela(colore){
+  const t = tinta(colore);
+  for (let i = 0; i < byte.length; i += 4){
+    byte[i] = t[0]; byte[i+1] = t[1]; byte[i+2] = t[2]; byte[i+3] = 255;
+  }
+}
+
+function riversa(){
+  tctx.putImageData(immagine, 0, 0);
+  ctx.drawImage(tampone, 0, 0, tela.width, tela.height);
+}
+
+/* L'alone della televisione: un gradiente nativo sopra l'immagine, che il
+   browser calcola in hardware. Prima erano quattordici rettangoli disegnati
+   pixel per pixel, da soli l'ottanta per cento del carico. */
+let gradiente = null, gradienteScala = 0;
+function aloneTv(){
+  const SAL = window.SALOTTO;
+  if (!SAL || tSalotto < SC.accende) return;
+  if (!gradiente || gradienteScala !== scala){
+    const cx = tela.width / 2, cy = SAL.TV_CIMA * scala;
+    gradiente = ctx.createRadialGradient(cx, cy, 10 * scala, cx, cy, 110 * scala);
+    gradiente.addColorStop(0,   'rgba(150,190,240,0.20)');
+    gradiente.addColorStop(0.45,'rgba(140,180,235,0.07)');
+    gradiente.addColorStop(1,   'rgba(120,160,220,0)');
+    gradienteScala = scala;
+  }
+  ctx.fillStyle = gradiente;
+  ctx.fillRect(0, 0, tela.width, tela.height);
+}
+
+ridimensiona();     // ora il tampone esiste
+
+/* ==========================================================================
+   L'ATTORE — entra, poi vive di vita propria
+   ========================================================================== */
+const CENTRO = LARG / 2;
+let px = -14, fase = 0;
+let stato = 'ingresso';
+let atto = { azione:'cammina', t:0, durata:9999, verso:1 };
+let occhialiQ = 0, occhialiObiettivo = 0;
+
+const fraNumeri = (a, b) => a + Math.random() * (b - a);
+
+// le azioni si scelgono da sole, con pesi diversi: cosi' non si ripete
+// sempre lo stesso giro e sembra che stia aspettando davvero
+const REPERTORIO = [
+  { azione:'fermo',    peso:20, durata:() => fraNumeri(70, 150) },
+  { azione:'cammina',  peso:20, durata:() => fraNumeri(45, 105) },
+  { azione:'svapo',    peso:15, durata:() => A.SVAPO.ciclo },
+  { azione:'fianchi',  peso:15, durata:() => fraNumeri(110, 210) },
+  { azione:'occhiali', peso:14, durata:() => 250 },
+  { azione:'sbuffa',   peso:16, durata:() => A.SBUFFO.fine },
+  { azione:'telefono', peso:12, durata:() => A.TELEFONATA.fine }
+];
+
+function nuovoAtto(){
+  // mai due volte lo stesso gesto di fila: e' quello che smaschera
+  // subito un'animazione fatta a caso
+  const scelte = REPERTORIO.filter(s => s.azione !== atto.azione);
+  const totale = scelte.reduce((s, v) => s + v.peso, 0);
+  let n = Math.random() * totale, scelta = scelte[0];
+  for (const s of scelte){ n -= s.peso; if (n <= 0){ scelta = s; break; } }
+
+  atto = { azione: scelta.azione, t: 0, durata: scelta.durata(), verso: Math.random() < .5 ? -1 : 1 };
+  if (atto.azione === 'cammina'){
+    if (px < CENTRO - 16) atto.verso = 1;         // non esce di scena
+    if (px > CENTRO + 16) atto.verso = -1;
+  }
+}
+
+let pigiama = false, tPiroetta = 0;
+const PIROETTA = 92;
+
+function aggiornaAttore(){
+  atto.t++;
+
+  if (stato === 'ingresso'){
+    px += 0.5;
+    if (px >= CENTRO){ px = CENTRO; stato = 'mh'; atto = { azione:'fermo', t:0, durata:78 }; }
+    return;
+  }
+  if (stato === 'mh'){
+    if (atto.t >= atto.durata){ stato = 'racconto'; avviaRacconto(); nuovoAtto(); }
+    return;
+  }
+
+  // gira su se stesso dentro la nuvola e ne esce in pigiama
+  if (stato === 'piroetta'){
+    tPiroetta++;
+    if (tPiroetta > PIROETTA * 0.45) pigiama = true;
+    if (tPiroetta >= PIROETTA){ stato = 'esce'; atto = { azione:'cammina', t:0, durata:9999 }; }
+    return;
+  }
+  if (stato === 'esce'){
+    px += 0.85;
+    if (px > LARG + 20) entraInSalotto();
+    return;
+  }
+  if (stato === 'salotto' || stato === 'racconto2') return;
+
+  if (atto.azione === 'cammina') px += 0.42 * atto.verso;
+  px = Math.max(CENTRO - 22, Math.min(CENTRO + 22, px));
+
+  // gli occhiali salgono in fronte e dopo un po' tornano al loro posto
+  occhialiObiettivo = (atto.azione === 'occhiali' && atto.t > 26 && atto.t < atto.durata - 34) ? 1 : 0;
+  occhialiQ += (occhialiObiettivo - occhialiQ) * 0.09;
+
+  if (atto.t >= atto.durata) nuovoAtto();
+}
+
+/* --------------------------------------------------------------------------
+   SECONDO ATTO — il salotto. Lui si stende e la televisione va a palla.
+   -------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------
+   SECONDO ATTO — la scena del salotto, in ordine:
+   entra da sinistra, prende il telecomando dal bracciolo, accende la TV,
+   si siede, e alza il volume in tre scatti fino a 70, dove comincia
+   il tremolio. La narrazione si sincronizza su questi momenti.
+   -------------------------------------------------------------------------- */
+const SC = {
+  entra:96,       // cammina da sinistra fino al bracciolo
+  prende:130,     // allunga la mano e prende il telecomando
+  accende:158,    // punta e accende
+  siede:214       // si sposta al centro e si siede
+};
+
+/* Nove pressioni del telecomando, in tre gruppi da tre.
+   Ogni pressione e' uno scatto secco: e' quello che fa capire che sta
+   pigiando il tasto, non che il volume sale da solo. */
+const PRESSIONI = [
+  { t:248, v:15 }, { t:266, v:25 }, { t:284, v:30 },
+  { t:322, v:35 }, { t:340, v:45 }, { t:358, v:50 },
+  { t:396, v:55 }, { t:414, v:65 }, { t:432, v:70 }
+];
+SC.vol70 = PRESSIONI[PRESSIONI.length - 1].t;
+SC.fineVolume = SC.vol70 + 20;      // appena la TV trema: non un attimo dopo
+
+let tSalotto = 0;
+
+function statoSalotto(){
+  const t = tSalotto;
+  let volume = 0, scatto = false;
+  for (const p of PRESSIONI){
+    if (t >= p.t){ volume = p.v; }
+    if (t >= p.t && t < p.t + 4) scatto = true;      // lo scatto dura 4 fotogrammi
+  }
+  const tvAccesa = t >= SC.accende;
+  const tremore = volume >= 70;
+
+  // la barra resta su per tutta la sequenza, poi si dissolve
+  let forza = 0;
+  if (t >= PRESSIONI[0].t - 6){
+    const d = t - SC.fineVolume;
+    forza = d < 0 ? Math.min(1, (t - PRESSIONI[0].t + 6) / 8) : Math.max(0, 1 - d / 22);
+  }
+
+  let posa = 'cammina', px = -12 + (t / SC.entra) * 44;
+  if (t >= SC.entra){ posa = 'prende'; px = 32; }
+  if (t >= SC.prende){ posa = 'punta'; px = 32; }
+  if (t >= SC.accende){
+    const q = Math.min(1, (t - SC.accende) / (SC.siede - SC.accende));
+    posa = q < 0.8 ? 'cammina' : 'siede'; px = 32 + q * 21;
+  }
+  if (t >= SC.siede){ posa = 'siede'; px = 53; }
+
+  return { t, posa, px, volume, forza, scatto, tvAccesa, tremore,
+           telecomandoSulBracciolo: t < SC.prende,
+           // dopo il volume lascia il telecomando e torna a vivere di suo
+           libero: t >= SC.fineVolume };
+}
+
+let divano = { t:0, azione:'guarda', durata:200, dorme:false, battuta:null, tBattuta:0 };
+
+const SUL_DIVANO = [
+  { azione:'guarda',  peso:26, durata:() => fraNumeri(150, 300) },
+  { azione:'svapa',   peso:20, durata:() => 200 },
+  { azione:'canale',  peso:20, durata:() => 90 },
+  { azione:'dorme',   peso:18, durata:() => fraNumeri(260, 420) },
+  { azione:'chiama',  peso:16, durata:() => 260 }
+];
+
+function nuovoGestoDivano(){
+  const scelte = SUL_DIVANO.filter(s => s.azione !== divano.azione);
+  const tot = scelte.reduce((a, b) => a + b.peso, 0);
+  let n = Math.random() * tot, s = scelte[0];
+  for (const x of scelte){ n -= x.peso; if (n <= 0){ s = x; break; } }
+  divano = { t:0, azione:s.azione, durata:s.durata(), dorme:s.azione === 'dorme' };
+}
+
+function entraInSalotto(){
+  vista = VISTE.salotto;
+  ridimensiona();
+  stato = 'racconto2';
+  tSalotto = 0;
+  attoCorrente = 1; FRASI = ATTI[1]; iFrase = -1;
+  elAvanti.classList.remove('viva');
+  elSuggerimento.style.display = '';
+  // il racconto non parte qui: aspetta che la sequenza del volume sia finita,
+  // altrimenti si leggerebbe mentre lui sta ancora armeggiando col telecomando
+}
+
+function disegna(){
+  fase++;
+  aggiornaAttore();
+
+  if (stato === 'salotto' || stato === 'racconto2'){
+    disegnaSalotto();
+    riversa();
+    aloneTv();
+    disegnaVelo();
+    requestAnimationFrame(disegna);
+    return;
+  }
+  if (stato === 'facile'){
+    pulisciTela('#0b0a09');
+    disegnaFacile();
+    riversa();
+    disegnaVelo();
+    requestAnimationFrame(disegna);
+    return;
+  }
+
+  pulisciTela('#0b0a09');
+  {
+    // un alone appena percettibile sotto di lui: senza, galleggia nel vuoto
+    for (let i = 0; i < 5; i++){
+      const w = 34 - i * 5;
+      for (let x = 0; x < w; x++)
+        P.punto(px - w / 2 + x, SUOLO + i - 1, 'rgba(120,96,70,' + (0.05 - i * 0.008) + ')');
+    }
+
+    const azione = (stato === 'ingresso' || stato === 'esce') ? 'cammina'
+                 : (stato === 'mh' || stato === 'piroetta') ? 'fermo' : atto.azione;
+    const t = (stato === 'ingresso' || stato === 'esce') ? fase : atto.t;
+
+    A.attore(P, px, SUOLO, {
+      azione: azione === 'occhiali' ? 'fermo' : azione,
+      t, occhialiQ, pigiama, largTela: LARG_T
+    });
+
+    if (stato === 'mh' && atto.t > 10) A.fumetto(P, px + 10, SUOLO - 44, 'Mh', null, LARG_T);
+    if (stato === 'piroetta') A.polvere(P, px, SUOLO, tPiroetta, PIROETTA);
+  }
+
+  riversa();
+  requestAnimationFrame(disegna);
+}
+
+function disegnaSalotto(){
+  tSalotto++;
+  const SAL = window.SALOTTO, GP = window.PIGIAMA;
+  const s = statoSalotto();
+
+  // 1. la stanza. Non cambia mai un pixel: la si disegna al primo
+  //    fotogramma e da lì in poi si ricopia il buffer, che costa una
+  //    frazione rispetto a ridisegnare 36.000 pixel ogni volta.
+  if (!sfondoSalvato){
+    pulisciTela('#0b0a09');
+    SAL.sfondo(P);
+    sfondoSalvato = new Uint8ClampedArray(byte);
+  } else {
+    byte.set(sfondoSalvato);
+  }
+
+  // 2. il telecomando sul bracciolo, finche' non lo raccoglie
+  if (s.telecomandoSulBracciolo) SAL.telecomando(P, SAL.BRACCIOLO.x, SAL.BRACCIOLO.y);
+
+  // 3. lui: in piedi finche' non si siede, poi lo sprite seduto
+  if (s.posa === 'siede'){
+    const sed = GP.seduto();
+    const ox = Math.round(SAL.POSTO.x - sed[0].length / 2);
+    // seduto piu' in alto: appoggia sulla seduta, non ci affonda
+    const oy = SAL.SEDUTA - sed.length + 6;
+    const respiro = s.libero && (Math.floor(s.t / 46) % 2) ? -1 : 0;
+
+    if (s.libero) aggiornaGesto();
+
+    // quando dorme non e' seduto: si e' steso. Sprite in piedi, orizzontale.
+    if (s.libero && gesto.nome === 'dorme' && gesto.t > 26){
+      A.dormeOrizzontale(P, SAL.POSTO.x - 5, SAL.SEDUTA - 18, gesto.t);
+    } else {
+      for (let y = 0; y < sed.length; y++)
+        for (let x = 0; x < sed[y].length; x++){
+          const ch = sed[y][x];
+          if (ch !== '.') P.punto(ox + x, oy + y + respiro, A.C[ch]);
+        }
+      if (!s.libero){
+        // il telecomando in mano: a ogni pressione la mano scatta in su
+        const su = s.scatto ? -2 : 0;
+        SAL.telecomando(P, ox + 13, oy + 23 + su);
+        P.punto(ox + 12, oy + 24 + su, A.C.l);
+        P.punto(ox + 12, oy + 25 + su, A.C.s);
+        if (s.scatto) P.punto(ox + 14, oy + 22, '#8fe4ff');   // il tasto si illumina
+      } else {
+        gestiSulDivano(P, ox, oy + respiro);
+      }
+    }
+  } else {
+    const azione = (s.posa === 'prende' || s.posa === 'punta') ? 'fermo' : 'cammina';
+    A.attore(P, s.px, SAL.SEDUTA + 12, { azione, t: s.t, pigiama: true });
+    // braccio allungato verso il bracciolo, o che punta alla televisione
+    if (s.posa === 'prende' || s.posa === 'punta'){
+      const bx = Math.round(s.px) + 6, by = SAL.SEDUTA - 6;
+      for (let i = 0; i < 5; i++) P.punto(bx + i, by + 2 - Math.floor(i / 2), A.C.p);
+      P.punto(bx + 5, by, A.C.l);
+      if (s.posa === 'punta') SAL.telecomando(P, bx + 5, by - 1);
+    }
+  }
+
+  // 4. la televisione in primo piano, sopra tutto
+  SAL.televisore(P, s.tvAccesa, s.tremore, fase);
+
+  // 5. la barra del volume, in alto
+  SAL.barraVolume(P, s.volume, s.forza, s.scatto);
+
+  // 6. il racconto parte quando la sequenza del volume e' finita.
+  //    Il >= invece del == e' una rete: se un fotogramma salta — cambio di
+  //    scheda, telefono che rallenta — la condizione non viene mancata e la
+  //    scena non resta bloccata per sempre.
+  if (s.t >= SC.fineVolume && iFrase < 0) avviaRacconto();
+
+  // 7. intanto qualcosa dice che si puo' toccare
+  if (s.t < SC.fineVolume && s.t > 40 && (s.t % 90) < 45) elFreccia.classList.add('viva');
+  else if (iFrase < 0) elFreccia.classList.remove('viva');
+}
+
+/* --------------------------------------------------------------------------
+   Lasciato il telecomando, torna a vivere di suo: le animazioni pensate
+   per questa scena. Stesso repertorio a pesi della prima, con la regola
+   che non ripete due volte lo stesso gesto.
+   -------------------------------------------------------------------------- */
+const GESTI = [
+  { nome:'guarda', peso:26, durata:() => fraNumeri(120, 260) },
+  { nome:'svapa',  peso:20, durata:() => 200 },
+  { nome:'canale', peso:18, durata:() => 90 },
+  { nome:'dorme',  peso:18, durata:() => fraNumeri(240, 380) },
+  { nome:'amore',  peso:18, durata:() => 220 }
+];
+let gesto = { nome:'guarda', t:0, durata:150 };
+
+function aggiornaGesto(){
+  gesto.t++;
+  if (gesto.t < gesto.durata) return;
+  const scelte = GESTI.filter(g => g.nome !== gesto.nome);
+  const tot = scelte.reduce((a, b) => a + b.peso, 0);
+  let n = Math.random() * tot, s = scelte[0];
+  for (const x of scelte){ n -= x.peso; if (n <= 0){ s = x; break; } }
+  gesto = { nome:s.nome, t:0, durata:s.durata() };
+}
+
+/* Gesti da seduto. Il sonno non passa da qui: quando dorme si stende,
+   e ci pensa dormeOrizzontale(). */
+function gestiSulDivano(P, ox, oy){
+  const g = gesto.nome, t = gesto.t;
+  const SAL = window.SALOTTO;
+
+  /* LA SVAPATA — la mano sale dalla coscia alla bocca, resta su mentre
+     tira, e ridiscende. Prima non si vedeva perche' il braccio partiva
+     dove la mano non c'era. */
+  if (g === 'svapa'){
+    const sale = 26, tira = 96, scende = 128;
+    let q = 0;                                    // 0 mano in basso, 1 alla bocca
+    if (t < sale) q = t / sale;
+    else if (t < tira) q = 1;
+    else if (t < scende) q = 1 - (t - tira) / (scende - tira);
+    if (q > 0.02){
+      const mx = ox + 14 - Math.round(q * 3);
+      const my = oy + 22 - Math.round(q * 11);
+      // avambraccio dalla coscia alla mano
+      const sx = ox + 15, sy = oy + 23;
+      const passi = Math.max(1, Math.abs(my - sy));
+      for (let i = 0; i <= passi; i++){
+        const p = i / passi;
+        P.punto(Math.round(sx + (mx - sx) * p), Math.round(sy + (my - sy) * p), A.C.p);
+        P.punto(Math.round(sx + (mx - sx) * p) + 1, Math.round(sy + (my - sy) * p), A.C.q);
+      }
+      P.punto(mx, my, A.C.l); P.punto(mx + 1, my, A.C.s); P.punto(mx, my + 1, A.C.S);
+      A.sprite(P, A.SPR.svapo, mx, my - 4);
+      if (q === 1 && t > sale + 14) P.punto(mx, my - 1, '#8fe4ff');   // il LED
+    }
+    // espirazione: la nuvola parte dalla bocca
+    if (t > tira + 6) A.fumo(P, ox - 2, oy - 2, t - tira - 6);
+  }
+
+  if (g === 'canale'){
+    const su = (t % 22 < 3) ? -2 : 0;
+    SAL.telecomando(P, ox + 13, oy + 23 + su);
+    P.punto(ox + 12, oy + 24 + su, A.C.l);
+  }
+
+  if (g === 'amore' && t > 26 && t < 200)
+    A.fumetto(P, ox + 19, oy - 11, "AMO'!", null, LARG_T);
+}
+
+/* ==========================================================================
+   IL TESTO — a macchina da scrivere, e si procede toccando
+   ========================================================================== */
+const elTesto = document.getElementById('testo');
+const elFreccia = document.getElementById('freccia');
+const elAvanti = document.getElementById('avanti');
+const elCornice = document.getElementById('cornice');
+const elSuggerimento = document.getElementById('suggerimento');
+
+let iFrase = -1, scrivendo = false, timer = null;
+
+function avviaRacconto(){
+  elCornice.classList.add('viva');
+  prossimaFrase();
+}
+
+function prossimaFrase(){
+  iFrase++;
+  if (iFrase >= FRASI.length){
+    elFreccia.classList.remove('viva');
+    elSuggerimento.style.display = 'none';
+    elAvanti.classList.add('viva');
+    return;
+  }
+  scriviA(FRASI[iFrase]);
+}
+
+// scrive lettera per lettera senza spezzare i tag html
+function scriviA(html){
+  scrivendo = true;
+  elFreccia.classList.remove('viva');
+  const pezzi = html.split(/(<[^>]+>)/).filter(Boolean);
+  let i = 0, j = 0, uscita = '';
+  clearInterval(timer);
+  timer = setInterval(() => {
+    if (i >= pezzi.length){ finisci(html); return; }
+    const p = pezzi[i];
+    if (p.startsWith('<')){ uscita += p; i++; }
+    else {
+      uscita += p[j++];
+      if (j >= p.length){ i++; j = 0; }
+    }
+    elTesto.innerHTML = uscita;
+  }, 26);
+}
+
+function finisci(html){
+  clearInterval(timer);
+  elTesto.innerHTML = html;
+  scrivendo = false;
+  elFreccia.classList.add('viva');
+}
+
+function tocca(){
+  if (stato === 'facile'){ avanzaFacile(); return; }
+  if (stato !== 'racconto' && stato !== 'racconto2') return;
+  // Nella seconda scena, se il racconto non e' ancora partito, il tocco
+  // salta alla fine della sequenza del volume. Uno schermo dove toccare
+  // non produce nulla sembra rotto, e l'utente smette di provare.
+  if (stato === 'racconto2' && iFrase < 0){ tSalotto = SC.fineVolume - 1; return; }
+  if (scrivendo) finisci(FRASI[iFrase]);       // primo tocco: mostra tutto
+  else if (iFrase < FRASI.length) prossimaFrase();
+}
+
+addEventListener('pointerdown', e => {
+  if (e.target.id === 'avanti') return;
+  tocca();
+});
+addEventListener('keydown', e => {
+  if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); tocca(); }
+});
+
+/* L'uscita di sicurezza. Chi vuole solo sapere quando e dove non deve
+   restare in trappola dentro le scene: manda avanti quella corrente. */
+document.getElementById('salta').addEventListener('click', () => {
+  if (stato === 'racconto' || stato === 'mh' || stato === 'ingresso'){
+    stato = 'racconto';
+    while (iFrase < FRASI.length - 1) prossimaFrase();
+    finisci(FRASI[iFrase]);
+  } else if (stato === 'racconto2'){
+    if (iFrase < 0) tSalotto = SC.fineVolume - 1;
+    else { while (iFrase < FRASI.length - 1) prossimaFrase(); finisci(FRASI[iFrase]); }
+  } else if (stato === 'facile'){
+    passoFacile = window.FACILE.PASSI.length - 1;
+    tPasso = 9999;
+    while (iFrase < FRASI.length - 1) prossimaFrase();
+    finisci(FRASI[iFrase]);
+    elAvanti.classList.add('viva');
+  }
+});
+
+elAvanti.addEventListener('click', () => {
+  if (attoCorrente === 0){
+    elCornice.classList.remove('viva');
+    elAvanti.classList.remove('viva');
+    stato = 'piroetta'; tPiroetta = 0;
+  } else if (attoCorrente === 1){
+    elCornice.classList.remove('viva');
+    elAvanti.classList.remove('viva');
+    chiudiVelo(entraInFacile);
+  } else {
+    elAvanti.textContent = 'in arrivo\u2026';
+  }
+});
+
+/* --------------------------------------------------------------------------
+   TERZO ATTO — "per lui e' tutto facile"
+   Tre giri: sedia rotta, muro a meta', Torre di Pisa. Sempre lo stesso
+   schema e sempre la stessa parola. Le frasi arrivano da sole, sincronizzate
+   sui giri: qui il ritmo comico conta piu' della lettura a proprio agio.
+   -------------------------------------------------------------------------- */
+let passoFacile = 0, tPasso = 0;
+
+function entraInFacile(){
+  vista = VISTE.facile;
+  ridimensiona();
+  stato = 'facile';
+  passoFacile = 0; tPasso = 0;
+  attoCorrente = 2; FRASI = ATTI[2]; iFrase = -1;
+  elAvanti.classList.remove('viva');
+  elSuggerimento.style.display = '';
+  elCornice.classList.add('viva');
+  prossimaFrase();
+}
+
+/* Il tocco fa avanzare di un passo, ma solo quando l'animazione in corso
+   e' arrivata in fondo: altrimenti la completa e basta. */
+function avanzaFacile(){
+  const F = window.FACILE;
+  if (scrivendo){ finisci(FRASI[iFrase]); return; }
+  const s = F.stato(passoFacile, tPasso);
+  if (!s.finito){ tPasso = F.PASSI[passoFacile].durata; return; }
+
+  if (passoFacile >= F.PASSI.length - 1){
+    elAvanti.classList.add('viva');
+    elSuggerimento.style.display = 'none';
+    return;
+  }
+  passoFacile++; tPasso = 0;
+  const p = F.PASSI[passoFacile];
+  if (p.frase !== undefined && !p.ritardoFrase) prossimaFrase();
+}
+
+function disegnaFacile(){
+  tPasso++;
+  const F = window.FACILE, s = F.stato(passoFacile, tPasso);
+  const p = F.PASSI[passoFacile];
+
+  // certe frasi arrivano a meta' del passo, dopo che si e' visto il gesto
+  if (p.ritardoFrase && tPasso === p.ritardoFrase) prossimaFrase();
+
+  // il pavimento: una riga, basta a dire che c'e' un piano
+  for (let x = 0; x < F.LARG; x++) P.punto(x, F.SUOLO + 1, '#2a2018');
+  for (let x = 0; x < F.LARG; x += 3) P.punto(x, F.SUOLO + 2, '#1c1510');
+
+  F.scatola(P, 4, F.SUOLO - 9, s.pesca);
+  A.attore(P, 22, F.SUOLO, { azione: 'fermo', t: tPasso + passoFacile * 97, pigiama: false });
+
+  // il braccio che pesca nella scatola
+  if (s.pesca){
+    for (let i = 0; i < 5; i++) P.punto(15 - i, F.SUOLO - 12 + i, A.C.s);
+    P.punto(10, F.SUOLO - 8, A.C.l);
+  }
+
+  let x = Math.round(s.xOgg);
+  if (s.esce) x += Math.round(s.esce * 60);            // se ne va verso destra
+  if (s.cosa === 'tubo')  F.tubo(P, x, F.SUOLO - 2, s.q, tPasso);
+  if (s.cosa === 'muro')  F.muro(P, x, F.SUOLO - 2, s.q);
+  if (s.cosa === 'torre') F.torre(P, x, F.SUOLO - 2, 1 - s.q);
+  if (s.cosa === 'persona') F.persona(P, x, F.SUOLO, s.q > 0.5, tPasso, s.cammina);
+
+  if (s.polvere >= 0) A.polvere(P, x + 8, F.SUOLO + 4, s.polvere, s.durataPolvere);
+
+  // chi parla: sopra la persona se e' lei, sopra di lui se risponde
+  if (s.dice === true)          A.fumetto(P, 30, 10, 'VOILAT', null, F.LARG);
+  else if (typeof s.dice === 'string') A.fumetto(P, x - 2, 8, s.dice, null, F.LARG);
+  else if (s.diceLui)           A.fumetto(P, 26, 10, s.diceLui, null, F.LARG);
+
+  // la freccia lampeggia quando il passo e' compiuto e si aspetta il tocco
+  if (s.finito && !scrivendo) elFreccia.classList.add('viva');
+  else elFreccia.classList.remove('viva');
+}
+
+/* --------------------------------------------------------------------------
+   TRANSIZIONE — la televisione si spegne, buio, poi si apre la scena nuova.
+   E' la piu' sensata qui: siamo dietro la TV, e spegnerla e' il modo
+   naturale di uscire da quella stanza.
+   -------------------------------------------------------------------------- */
+let tVelo = 0, veloVerso = 0, dopoVelo = null;
+const VELO = 34;
+
+function chiudiVelo(quandoNero){
+  veloVerso = 1; tVelo = 0; dopoVelo = quandoNero;
+}
+
+function disegnaVelo(){
+  if (!veloVerso) return false;
+  tVelo++;
+  const q = Math.min(1, tVelo / VELO);
+  const alfa = veloVerso === 1 ? q : 1 - q;
+  ctx.fillStyle = 'rgba(6,6,7,' + alfa.toFixed(3) + ')';
+  ctx.fillRect(0, 0, tela.width, tela.height);
+  if (tVelo >= VELO){
+    if (veloVerso === 1){
+      if (dopoVelo) dopoVelo();
+      dopoVelo = null;
+      veloVerso = -1; tVelo = 0;
+    } else {
+      veloVerso = 0;
+    }
+  }
+  return true;
+}
+
+disegna();
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

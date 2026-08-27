@@ -1,0 +1,12 @@
+# Le foto di Gerardo sono materiale di lavoro e non devono finire online:
+# su GitHub Pages il sito e' pubblico, e chiunque abbia l'indirizzo di un
+# file puo' scaricarlo.
+materiale/
+
+# dipendenze: si reinstallano con "npm install"
+node_modules/
+
+# roba di sistema
+Thumbs.db
+desktop.ini
+.DS_Store
