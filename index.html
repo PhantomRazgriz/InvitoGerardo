@@ -650,8 +650,19 @@ function avviaRacconto(){
   prossimaFrase();
 }
 
-function prossimaFrase(){
-  iFrase++;
+function prossimaFrase(){ mostraFrase(iFrase + 1); }
+
+/* Mostra una frase PRECISA, per indice.
+   La terza scena dichiara, passo per passo, quale frase gli appartiene, e
+   serve poter chiedere quella: con il solo scorrimento in avanti bastava
+   perdere una frase per sfasare di uno tutte le successive fino alla fine
+   della scena. E una frase si perdeva davvero, ogni volta che il tocco
+   saltava l'animazione prima del suo scoppio ritardato.
+   Chiedere una frase gia' detta non fa niente: cosi' la si puo' invocare
+   piu' volte senza controlli sparsi per il codice. */
+function mostraFrase(n){
+  if (n === undefined || n <= iFrase) return;
+  iFrase = n;
   if (iFrase >= FRASI.length){
     elFreccia.classList.remove('viva');
     elSuggerimento.style.display = 'none';
@@ -787,16 +798,29 @@ function avanzaFacile(){
   }
   passoFacile++; tPasso = 0;
   const p = F.PASSI[passoFacile];
-  if (p.frase !== undefined && !p.ritardoFrase) prossimaFrase();
+  if (!p.ritardoFrase) mostraFrase(p.frase);
 }
 
 function disegnaFacile(){
-  tPasso++;
-  const F = window.FACILE, s = F.stato(passoFacile, tPasso);
+  const F = window.FACILE;
   const p = F.PASSI[passoFacile];
 
-  // certe frasi arrivano a meta' del passo, dopo che si e' visto il gesto
-  if (p.ritardoFrase && tPasso === p.ritardoFrase) prossimaFrase();
+  /* L'animazione del passo non parte finche' la frase d'apertura non e'
+     scritta per intero: era questo a far succedere le cose prima che si
+     potesse leggerle.
+     Le frasi a scoppio ritardato sono l'eccezione, e non fermano niente:
+     sono scritte per cadere DENTRO il gesto, e trattenerle congelerebbe
+     il gesto a meta'. */
+  const attendeApertura = p.frase !== undefined && !p.ritardoFrase && scrivendo;
+  if (!attendeApertura) tPasso++;
+
+  const s = F.stato(passoFacile, tPasso);
+
+  /* Certe frasi arrivano a meta' del passo, dopo che si e' visto il gesto.
+     Il confronto e' "almeno", non "esattamente": il tocco che salta
+     l'animazione porta tPasso di colpo alla durata, e con l'uguaglianza
+     secca il fotogramma dello scoppio non veniva mai attraversato. */
+  if (p.ritardoFrase && tPasso >= p.ritardoFrase) mostraFrase(p.frase);
 
   // il pavimento: una riga, basta a dire che c'e' un piano
   for (let x = 0; x < F.LARG; x++) P.punto(x, F.SUOLO + 1, '#2a2018');
@@ -886,9 +910,11 @@ function disegnaMappa(){
   const limite = fineAggancio();
   const ultimo = livelloMappa >= M.LIVELLI.length - 1;
 
-  // il tempo si ferma ad aggancio avvenuto, finche' non arriva il tocco
+  /* Il tempo si ferma in due casi: ad aggancio avvenuto, finche' non arriva
+     il tocco; e mentre una frase si sta scrivendo, cosi' la scansione non
+     parte addosso a un testo che si sta ancora leggendo. */
   const inAttesa = !ultimo && tMappa >= limite && !strettaLibera;
-  if (!inAttesa) tMappa++;
+  if (!inAttesa && !scrivendo) tMappa++;
 
   if (!ultimo && tMappa >= M.DURATA_LIVELLO){
     livelloMappa++; tMappa = 0; strettaLibera = false;
