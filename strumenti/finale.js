@@ -88,6 +88,7 @@ if (modo === "poltrona"){
       t: 40, rabbia: k.rabbia, ombra: !k.seduto
     });
     F.poltrona(P, F.X_POLTRONA, "davanti", k.entrata);
+    if (k.seduto) F.poltrona(P, F.X_POLTRONA, "gambe", k.entrata);
     riquadro(ctx, gx, gy, k.et, k.bianco > 0.5);
   });
   fs.writeFileSync("anteprime/scelta.png", c.toBuffer("image/png"));
@@ -145,6 +146,7 @@ if (modo === "si" || modo === "no"){
       F.suolo(P, 1);
       F.poltrona(P, F.X_POLTRONA, "dietro", 1);
       if (s.porta) F.porta(P, F.LARG - 16, F.SUOLO, s.porta.apre, s.porta.comparsa);
+      if (!s.gambe) F.poltrona(P, F.X_POLTRONA, "davanti", 1);
       if (s.mostraLui){
         const r = A.attore(P, s.x, s.y, {
           azione: s.azione, t: tE, rabbia: s.rabbia,
@@ -152,7 +154,10 @@ if (modo === "si" || modo === "no"){
         });
         if (s.piange) F.lacrime(P, r.cx, r.cy, tE);
       }
-      F.poltrona(P, F.X_POLTRONA, "davanti", 1);
+      if (s.gambe){
+        F.poltrona(P, F.X_POLTRONA, "davanti", 1);
+        F.poltrona(P, F.X_POLTRONA, "gambe", 1);
+      }
       if (s.coriandoli) F.coriandoli(P, tE);
     }
     riquadro(ctx, gx, gy, `tE=${tE} ${s.fase}`, s.buio === undefined || s.buio < 0.5);
@@ -195,3 +200,6 @@ if (modo === "addio"){
   fs.writeFileSync("anteprime/addio.png", c.toBuffer("image/png"));
   console.log("addio -> anteprime/addio.png");
 }
+
+
+
