@@ -73,6 +73,32 @@
     position:absolute; left:0; right:0; bottom:-26px; text-align:center;
     font-size:12px; color:var(--tenue); letter-spacing:.06em;
   }
+
+  /* LA SCELTA — i due pulsanti grandi.
+     Grandi per due ragioni: e' l'unico momento in cui si decide qualcosa, e
+     chi guarda potrebbe avere sessant'anni e un dito non piccolo. */
+  #scelta{ display:none; gap:14px; margin:16px auto 0; justify-content:center }
+  #scelta.viva{ display:flex }
+  #scelta button{
+    font:inherit; font-weight:800; font-size:clamp(20px,6vw,26px);
+    letter-spacing:.1em; color:#fff; border:0; border-radius:14px;
+    padding:18px 0; width:130px; cursor:pointer; transition:transform .12s ease;
+  }
+  #scelta button:active{ transform:scale(.94) }
+  #si{ background:#2f9e52; box-shadow:0 6px 22px rgba(47,158,82,.34) }
+  #no{ background:#c33f2c; box-shadow:0 6px 22px rgba(195,63,44,.34) }
+  /* il no si ritira a ogni rifiuto: la scelta resta possibile, ma sempre
+     meno comoda. E' la stessa cosa che fa lui, arrabbiandosi di piu' */
+  #no.duro1{ transform:translateY(3px) scale(.93) }
+  #no.duro2{ transform:translateY(6px) scale(.86) }
+
+  #conferma{
+    display:none; margin:16px auto 0; font:inherit; font-weight:700;
+    font-size:clamp(15px,4vw,17px); text-align:center; text-decoration:none;
+    color:#fff; background:#25d366; border-radius:999px; padding:15px 26px;
+    box-shadow:0 6px 22px rgba(37,211,102,.34);
+  }
+  #conferma.viva{ display:block }
 </style>
 </head>
 <body>
@@ -85,6 +111,11 @@
   <p id="testo"></p>
   <span id="freccia">&#9660;</span>
   <button id="avanti">AVANTI</button>
+  <div id="scelta">
+    <button id="si">S&Igrave;</button>
+    <button id="no">NO</button>
+  </div>
+  <a id="conferma" href="#" target="_blank" rel="noopener">Invia messaggio di conferma</a>
   <span id="suggerimento">tocca per continuare</span>
 </div>
 
@@ -93,6 +124,7 @@
 <script src="pigiama.js"></script>
 <script src="facile.js"></script>
 <script src="mappa.js"></script>
+<script src="finale.js"></script>
 <script>
 "use strict";
 const A = window.ARTE;
@@ -129,7 +161,14 @@ const ATTI = [
     'Ma parliamo dell\u2019evento.',
     'Ecco il luogo dove avverr\u00e0 la festa.',
     // INDIRIZZO DA CONFERMARE: qui va la via esatta del Cavallino Rosso
-    '<span class="nome">Cavallino Rosso</span><br>San Giovanni Rotondo (FG)'
+    '<span class="nome">Cavallino Rosso</span><br>San Giovanni Rotondo (FG)<br>' +
+      '<span class="nome">sabato 7 novembre 2026</span>'
+  ],
+  [
+    'Avete data e luogo.',
+    'Come avete visto, <span class="nome">Gerardo</span> si arrabbia facilmente.',
+    'Scegliete bene la vostra risposta.',
+    'Se confermate, potrete aggiungere i dettagli nel messaggio.'
   ]
 ];
 let attoCorrente = 0;
@@ -154,7 +193,9 @@ const VISTE = {
   facile:  { LARG:88,  ALT:68,  sicura:88  },
   // la mappa non ha margini sacrificabili: le scritte stanno sui bordi e
   // vanno lette tutte, quindi la larghezza sicura e' tutta la tela
-  mappa:   { LARG:112, ALT:96,  sicura:112 }
+  mappa:   { LARG:112, ALT:96,  sicura:112 },
+  // 124 e' la misura dettata da "MANNAGGIA AL SOLE D'AGOSTO"
+  finale:  { LARG:124, ALT:76,  sicura:124 }
 };
 let vista = VISTE.buio;
 let LARG = vista.LARG, ALT = vista.ALT;
@@ -461,6 +502,19 @@ function disegna(){
     requestAnimationFrame(disegna);
     return;
   }
+  if (stato === 'caduta'){
+    disegnaCaduta();
+    riversa();
+    disegnaVelo();
+    requestAnimationFrame(disegna);
+    return;
+  }
+  if (stato === 'scelta'){
+    disegnaScelta();
+    riversa();
+    requestAnimationFrame(disegna);
+    return;
+  }
 
   pulisciTela('#0b0a09');
   {
@@ -642,6 +696,21 @@ const elFreccia = document.getElementById('freccia');
 const elAvanti = document.getElementById('avanti');
 const elCornice = document.getElementById('cornice');
 const elSuggerimento = document.getElementById('suggerimento');
+const elScelta = document.getElementById('scelta');
+const elSi = document.getElementById('si');
+const elNo = document.getElementById('no');
+const elConferma = document.getElementById('conferma');
+
+/* Il messaggio di conferma, gia' scritto.
+   NUMERO DA CONFERMARE: lasciato vuoto di proposito. Senza numero, wa.me
+   apre WhatsApp e fa scegliere il contatto: funziona per tutti e non
+   sbaglia destinatario. Messo il numero, il messaggio arriva diretto. */
+const NUMERO_WHATSAPP = '';
+const MESSAGGIO = 'Ci sar\u00f2 alla festa di Gerardo! ' +
+  'Sabato 7 novembre 2026, Cavallino Rosso, San Giovanni Rotondo.';
+
+elConferma.href = 'https://wa.me/' + NUMERO_WHATSAPP +
+  '?text=' + encodeURIComponent(MESSAGGIO);
 
 let iFrase = -1, scrivendo = false, timer = null;
 
@@ -701,6 +770,15 @@ function finisci(html){
 function tocca(){
   if (stato === 'facile'){ avanzaFacile(); return; }
   if (stato === 'mappa'){ avanzaMappa(); return; }
+  // nella scelta si decide con i pulsanti: il tocco a vuoto non deve
+  // far scorrere niente, o si perde la domanda
+  if (stato === 'scelta') return;
+  if (stato === 'caduta'){
+    if (iFrase < 0) return;                  // sta ancora cadendo
+    if (scrivendo) finisci(FRASI[iFrase]);
+    else if (iFrase < FRASI.length) prossimaFrase();
+    return;
+  }
   if (stato !== 'racconto' && stato !== 'racconto2') return;
   // Nella seconda scena, se il racconto non e' ancora partito, il tocco
   // salta alla fine della sequenza del volume. Uno schermo dove toccare
@@ -742,7 +820,16 @@ document.getElementById('salta').addEventListener('click', () => {
     finisci(FRASI[iFrase]);
     elAvanti.classList.add('viva');
     elSuggerimento.style.display = 'none';
+  } else if (stato === 'caduta'){
+    // salta la caduta e va diritto alla domanda
+    tCaduta = window.FINALE.DURATA_CADUTA;
+    elCornice.classList.add('viva');
+    while (iFrase < FRASI.length - 1) prossimaFrase();
+    finisci(FRASI[iFrase]);
+    elAvanti.classList.add('viva');
+    elSuggerimento.style.display = 'none';
   }
+  // nella scelta il pulsante non fa niente: la risposta e' il punto
 });
 
 elAvanti.addEventListener('click', () => {
@@ -758,10 +845,20 @@ elAvanti.addEventListener('click', () => {
     elCornice.classList.remove('viva');
     elAvanti.classList.remove('viva');
     chiudiVelo(entraInMappa);
-  } else {
-    elAvanti.textContent = 'in arrivo\u2026';
+  } else if (attoCorrente === 3){
+    elCornice.classList.remove('viva');
+    elAvanti.classList.remove('viva');
+    chiudiVelo(entraInCaduta);
+  } else if (attoCorrente === 4){
+    /* Nessun velo qui: e' lo sbiancamento della scena a fare da passaggio,
+       e un nero in mezzo lo spezzerebbe in due. */
+    elAvanti.classList.remove('viva');
+    entraInScelta();
   }
 });
+
+elSi.addEventListener('click', e => { e.stopPropagation(); premuto('si'); });
+elNo.addEventListener('click', e => { e.stopPropagation(); premuto('no'); });
 
 /* --------------------------------------------------------------------------
    TERZO ATTO — "per lui e' tutto facile"
@@ -931,6 +1028,180 @@ function disegnaMappa(){
 }
 
 /* --------------------------------------------------------------------------
+   QUINTO ATTO — la caduta
+
+   Serve a una cosa sola: ricordare com'e' fatto un attimo prima di chiedere
+   la conferma. La minaccia comica ("scegliete bene") sta in piedi solo se
+   l'hai appena visto arrabbiarsi per una sciocchezza.
+   -------------------------------------------------------------------------- */
+let tCaduta = 0;
+
+function entraInCaduta(){
+  vista = VISTE.finale;
+  ridimensiona();
+  stato = 'caduta';
+  tCaduta = 0;
+  attoCorrente = 4; FRASI = ATTI[4]; iFrase = -1;
+  elAvanti.classList.remove('viva');
+  elSuggerimento.style.display = 'none';
+  // la cornice del racconto entra dopo lo sfogo: durante la caduta
+  // il testo ruberebbe l'attenzione alla botta
+  elCornice.classList.remove('viva');
+}
+
+function disegnaCaduta(){
+  const F = window.FINALE;
+  /* Qui il tempo NON si ferma mentre si scrive: la caduta e' finita prima
+     che la prima frase compaia, e fermarla congelerebbe soltanto il respiro
+     e i trattini della rabbia, facendolo sembrare una statua. */
+  tCaduta++;
+  const s = F.statoCaduta(tCaduta);
+
+  pulisciTela(F.COL.buio);
+  F.suolo(P, 0);
+  if (s.polvere >= 0)
+    A.polvere(P, F.X_CADUTA, F.SUOLO + 4, s.polvere, s.durataPolvere);
+  A.attore(P, F.X_CADUTA + s.scossa, s.y, {
+    azione: s.azione, t: tCaduta, rabbia: s.rabbia, ombra: s.fase !== 'volo'
+  });
+  if (s.dice) A.fumetto(P, F.X_CADUTA - 12, 5, s.dice, null, F.LARG);
+
+  // sfogato, prende la parola la voce narrante
+  if (s.finito && iFrase < 0){
+    elCornice.classList.add('viva');
+    elSuggerimento.style.display = '';
+    prossimaFrase();
+  }
+}
+
+/* --------------------------------------------------------------------------
+   LA SCELTA
+
+   Il bianco non e' un vezzo: toglie di mezzo la scena e lascia soli chi
+   guarda e la domanda. Lui si defila a sinistra e si siede ad aspettare,
+   cosi' resta in campo senza pretendere attenzione.
+
+   I due pulsanti sono elementi della pagina e non disegni sulla tela:
+   e' l'unico momento in cui si decide qualcosa, e un bersaglio vero si
+   preme meglio di un rettangolo di pixel.
+   -------------------------------------------------------------------------- */
+const DOMANDE = [
+  'Sarai presente alla festa?',
+  '\u2026sei sicuro? Pensaci bene.',
+  'Ultima possibilit\u00e0. Ci sarai?'
+];
+const REAZIONI = ['MA COME NO', 'E ALLORA NO'];
+
+let tScelta = 0, rifiuti = 0, esito = null, tEsito = 0, dettoAddio = false;
+// da quanto e' arrivato l'ultimo no: serve a far durare la battuta il giusto
+let tRifiuto = 9999;
+
+function entraInScelta(){
+  stato = 'scelta';
+  tScelta = 0; rifiuti = 0; esito = null; tEsito = 0; dettoAddio = false;
+  tRifiuto = 9999;
+  attoCorrente = 5;
+  elAvanti.classList.remove('viva');
+  elFreccia.classList.remove('viva');
+  elSuggerimento.style.display = 'none';
+  elCornice.classList.add('viva');
+  clearInterval(timer); scrivendo = false;
+  elTesto.innerHTML = DOMANDE[0];
+  // si riparte da zero anche nei pulsanti, non solo nei contatori
+  elNo.className = '';
+  elScelta.classList.remove('viva');
+  elConferma.classList.remove('viva');
+  // l'uscita di sicurezza non ha piu' senso: data e luogo li ha gia' visti,
+  // e da qui in avanti c'e' solo da rispondere
+  document.getElementById('salta').style.display = 'none';
+}
+
+function premuto(risposta){
+  if (stato !== 'scelta' || esito) return;
+  const F = window.FINALE;
+  // finche' non si e' seduto i pulsanti non ci sono, ma un doppio tocco
+  // rapido potrebbe arrivare comunque
+  if (tScelta < F.SCE.sbianca + F.SCE.siede) return;
+
+  if (risposta === 'si'){
+    esito = 'si'; tEsito = 0;
+    elScelta.classList.remove('viva');
+    elTesto.innerHTML = 'Grazie! <span class="nome">Gerardo</span> sar\u00e0 ' +
+      'molto felice di averti alla festa.';
+    return;
+  }
+
+  rifiuti++;
+  tRifiuto = 0;
+  if (rifiuti < 3){
+    elTesto.innerHTML = DOMANDE[rifiuti];
+    // il no si fa piu' piccolo e piu' in basso a ogni rifiuto
+    elNo.className = 'duro' + rifiuti;
+    return;
+  }
+  esito = 'no'; tEsito = 0;
+  elScelta.classList.remove('viva');
+  elTesto.innerHTML = 'Ho capito.';
+}
+
+/* Disegna e' solo disegno: dove sta e come sta lo decide FINALE.statoScelta,
+   perche' gli stessi numeri servono anche alla prova a video. */
+function disegnaScelta(){
+  const F = window.FINALE;
+  tScelta++; tRifiuto++;
+  if (esito) tEsito++;
+
+  const s = F.statoScelta(tScelta, esito, tEsito, rifiuti);
+
+  if (s.fase === 'addio'){
+    // la scena resta, e il nero le si stende sopra
+    pulisciTela(F.COL.bianco);
+    F.suolo(P, 1);
+    F.poltrona(P, F.X_POLTRONA, 'dietro', 1);
+    F.porta(P, F.LARG - 16, F.SUOLO, 1, 1);
+    F.poltrona(P, F.X_POLTRONA, 'davanti', 1);
+    F.velo(P, s.buio);
+    F.cuore(P, F.LARG / 2, F.ALT / 2 - 2, s.cuore, fase);
+    if (s.finito && !dettoAddio){
+      dettoAddio = true;
+      elTesto.innerHTML = '<span class="nome">Gerardo</span> \u00e8 triste, ma non ' +
+        'si arrabbier\u00e0. Ci dispiace che tu non venga alla festa, ' +
+        'ma ti ringraziamo comunque.';
+    }
+    return;
+  }
+
+  pulisciTela(A.mescola(F.COL.buio, F.COL.bianco, s.bianco));
+  F.suolo(P, s.bianco);
+  F.poltrona(P, F.X_POLTRONA, 'dietro', s.entrata);
+  /* La porta va PRIMA di lui: disegnata dopo, il vano scuro lo cancellava
+     proprio nel momento in cui entra, e l'uscita si perdeva. Davanti al
+     buio dell'apertura invece si vede bene che se ne sta andando. */
+  if (s.porta) F.porta(P, F.LARG - 16, F.SUOLO, s.porta.apre, s.porta.comparsa);
+
+  if (s.mostraLui){
+    const r = A.attore(P, s.x, s.y, {
+      azione: s.azione, t: esito === 'si' ? tEsito : fase, rabbia: s.rabbia,
+      ombra: s.y === F.SUOLO, largTela: F.LARG
+    });
+    if (s.piange) F.lacrime(P, r.cx, r.cy, fase);
+  }
+
+  F.poltrona(P, F.X_POLTRONA, 'davanti', s.entrata);
+  if (s.coriandoli) F.coriandoli(P, tEsito);
+
+  // le battute dei rifiuti, che non restano appese per sempre
+  if (!esito && rifiuti > 0 && rifiuti <= REAZIONI.length && tRifiuto < 70)
+    A.fumetto(P, F.X_POLTRONA + 6, 5, REAZIONI[rifiuti - 1], null, F.LARG);
+
+  // comparse: i pulsanti quando si siede, il verde a festa avviata
+  if (s.seduto && !esito && !elScelta.classList.contains('viva'))
+    elScelta.classList.add('viva');
+  if (esito === 'si' && tEsito > 96 && !elConferma.classList.contains('viva'))
+    elConferma.classList.add('viva');
+}
+
+/* --------------------------------------------------------------------------
    TRANSIZIONE — la televisione si spegne, buio, poi si apre la scena nuova.
    E' la piu' sensata qui: siamo dietro la TV, e spegnerla e' il modo
    naturale di uscire da quella stanza.
@@ -965,6 +1236,7 @@ disegna();
 </script>
 </body>
 </html>
+
 
 
 

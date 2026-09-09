@@ -688,9 +688,72 @@ function personaggio(P, c, r, opz){
 }
 
 /* --------------------------------------------------------------------------
-   ATTORE — il personaggio a coordinate libere, fuori dalla griglia isometrica.
-   px, py sono i piedi: cosi' resta appoggiato dove lo metti.
+   LA RABBIA — la pelle che va al rosso.
+   Il personaggio e' disegnato da una dozzina di funzioni che leggono i colori
+   dalla tavolozza C. Passare a tutte un parametro in piu' avrebbe voluto dire
+   toccarle tutte: si tinge invece la tavolozza per il tempo del disegno, e
+   subito dopo si rimette com'era. Chi disegna non sa di essere arrabbiato.
    -------------------------------------------------------------------------- */
+const PELLE_CALMA = { l:C.l, s:C.s, S:C.S, b:C.b };
+// non un rosso qualsiasi: e' la pelle che si scalda, quindi resta nella
+// famiglia dell'incarnato invece di virare al pomodoro
+const PELLE_ROSSA = { l:'#f4795e', s:'#dd4b34', S:'#9e2b1d', b:'#c4543f' };
+
+function mescola(a, b, q){
+  const n = c => [parseInt(c.slice(1,3),16), parseInt(c.slice(3,5),16), parseInt(c.slice(5,7),16)];
+  const [r1,g1,b1] = n(a), [r2,g2,b2] = n(b);
+  const v = x => Math.round(x).toString(16).padStart(2, '0');
+  return '#' + v(r1+(r2-r1)*q) + v(g1+(g2-g1)*q) + v(b1+(b2-b1)*q);
+}
+
+function tingiPelle(q){
+  q = Math.max(0, Math.min(1, q || 0));
+  for (const k in PELLE_CALMA)
+    C[k] = q === 0 ? PELLE_CALMA[k] : mescola(PELLE_CALMA[k], PELLE_ROSSA[k], q);
+}
+
+/* Le sopracciglia calate.
+   Il rosso da solo fa sembrare che abbia caldo: sono le sopracciglia a dire
+   che e' arrabbiato. Ma gli occhi stanno alla riga 7 e gli occhiali da sole
+   li coprono tutti: le sopracciglia vanno quindi sulla fronte, righe 4 e 5,
+   che e' l'unico spazio libero che ha in faccia. Esterno alto e interno
+   basso: e' la pendenza, non lo spessore, a fare la rabbia. */
+function cigliaArrabbiate(P, cx, cy, dyTesta, q){
+  if (q < 0.25) return;
+  const c = C.e || '#3a2a26';
+  /* Righe 4 e 5, e non una di piu': alla riga 6 comincia la montatura degli
+     occhiali, che e' quasi nera, e le sopracciglia scure ci sparivano dentro.
+     Sulla fronte chiara invece stampano. */
+  const y = cy + dyTesta + 4;
+  /* Gli occhi stanno alle colonne 7-8 e 13-14: le sopracciglia devono
+     cadere sopra quelle, non altrove, o sembrano rughe.
+     Quattro pixel per lato su due righe, esterno alto e interno basso: con
+     tre erano sei pixel in croce e non si leggeva niente. */
+  const punti = q > 0.6
+    ? [[6, 0], [7, 0], [8, 1], [9, 1]]
+    : [[7, 0], [8, 1]];
+  for (const [dx, giu] of punti){
+    P.punto(cx + dx,      y + giu, c);
+    P.punto(cx + 21 - dx, y + giu, c);        // lo specchio, sprite largo 22
+  }
+}
+
+/* I trattini della rabbia attorno alla testa.
+   Prima erano sbuffi di vapore bianco: si vedevano sul buio della prima
+   scena e sparivano del tutto sul bianco della scena finale, che e' proprio
+   dove servono. Un rosso scuro invece si legge su qualsiasi fondo. */
+function sbuffiRabbia(P, cx, cy, dyTesta, q, t){
+  if (q < 0.5) return;
+  const c = '#b32d1c';
+  // pulsano: fermi sembravano graffi disegnati sopra il personaggio.
+  // Corti: a quattro pixel diventavano antenne
+  const lungo = 1 + Math.floor(q * 1.4) + (Math.floor(t / 7) % 2);
+  const partenze = [[5, 1, -1, -1], [16, 1, 1, -1], [3, 6, -1, 0], [18, 6, 1, 0]];
+  for (const [sx, sy, dx, dy] of partenze)
+    for (let i = 1; i <= lungo; i++)
+      P.punto(cx + sx + dx * i, cy + dyTesta + sy + dy * i, c);
+}
+
 function attore(P, px, py, stato){
   const o = Object.assign({ azione:'fermo', t:0, occhialiQ:0, ombra:true }, stato);
   const cx = Math.round(px - LARG_PERS / 2), cy = Math.round(py - ALT_PERS);
@@ -716,6 +779,8 @@ function attore(P, px, py, stato){
         P.punto(cx + LARG_PERS / 2 - w / 2 + x, py - 2 + i, 'rgba(12,9,8,0.34)');
     }
   }
+
+  tingiPelle(o.rabbia);
 
   VESTE = o.pigiama ? VESTITI.notte : VESTITI.giorno;
   const V = o.pigiama ? PEZZI_P : PEZZI;
@@ -749,6 +814,14 @@ function attore(P, px, py, stato){
     if (sv.alzata) braccioSvapo(P, cx, cy, sv.mano, dyTronco, sv.led);
     fumo(P, cx, cy + dyTesta, sv.tFumo);
   }
+
+  if (o.rabbia){
+    cigliaArrabbiate(P, cx, cy, dyTesta, o.rabbia);
+    sbuffiRabbia(P, cx, cy, dyTesta, o.rabbia, t);
+  }
+  // la tavolozza torna com'era: nessun altro deve accorgersi della rabbia
+  tingiPelle(0);
+
   return { cx, cy, dyTesta };
 }
 
@@ -1108,12 +1181,14 @@ const API = { C, SPR, CORPO, LARG_PERS, ALT_PERS, TILE_L, TILE_A, MURO_A, COL, R
               proietta, vertice, poligono, piastrella, scatola,
               scena, personaggio, attore, pavimento, sprite, ombreggia, TINTE,
               SVAPO, SBUFFO, TELEFONATA, BATTUTE, fasiSvapo, fumo, fumetto, passiDi, GLIFI,
+              tingiPelle, mescola, cigliaArrabbiate, sbuffiRabbia, PELLE_ROSSA,
               PIGIAMA, PEZZI_P, polvere, sdraiato, semiSdraiato, gerardoSdraiato, ellisse, capsula,
               dormeOrizzontale, palloncino, salotto, televisore, spriteGirato, ARREDO, POSTO };
 if (typeof module !== 'undefined' && module.exports) module.exports = API;
 else radice.ARTE = API;
 
 })(typeof self !== 'undefined' ? self : this);
+
 
 
 

@@ -87,6 +87,10 @@ const SARDEGNA = [
 // il bersaglio: San Giovanni Rotondo, coordinate vere
 const BERSAGLIO = [15.7269, 41.7086];
 
+// il quando e il dove, in un posto solo: se cambiano, cambiano qui
+const DATA = '07/11/2026';
+const LUOGO = 'CAVALLINO ROSSO';
+
 /* --------------------------------------------------------------------------
    I LIVELLI — dove guarda l'inquadratura e quanto e' larga, in gradi.
    L'ultimo non ha ampiezza: e' la pianta stradale.
@@ -500,9 +504,12 @@ function disegna(P, s, t){
     scritta(P, 4, ALT - 15, 'SCANSIONE', COL.testo);
     barra(P, 46, ALT - 13, LARG - 50, s.q);
   } else if (s.ultimo){
-    // arrivati: qui non si cerca piu' niente, si dice il nome del posto
+    /* Arrivati. Qui non si cerca piu' niente: si danno le due informazioni
+       per cui esiste tutto il resto. La data ferma e il luogo lampeggiante:
+       se lampeggiassero entrambi lo sguardo non saprebbe dove posarsi. */
+    scritta(P, 4, ALT - 22, DATA, COL.mirino);
     if (Math.floor(t / 16) % 2 === 0)
-      scritta(P, 4, ALT - 15, 'CAVALLINO ROSSO', COL.bersaglio);
+      scritta(P, 4, ALT - 15, LUOGO, COL.bersaglio);
   } else if (s.fase === 'agganciato'){
     // lampeggia: fermo sarebbe una didascalia, lampeggiando e' un allarme
     if (Math.floor(t / 14) % 2 === 0)
@@ -525,7 +532,7 @@ function disegna(P, s, t){
 }
 
 const API = {
-  LARG, ALT, COL, LIVELLI, BERSAGLIO, FASI, DURATA_LIVELLO,
+  LARG, ALT, COL, LIVELLI, BERSAGLIO, DATA, LUOGO, FASI, DURATA_LIVELLO,
   proiezione, riempi, contorno, segmento, strade, griglia, angoli,
   mirino, scansione, tacche, inquadratura, stato, disegna,
   scritta, largScritta, coordinate, barra,
