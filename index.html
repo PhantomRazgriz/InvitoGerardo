@@ -92,6 +92,7 @@
 <script src="salotto.js"></script>
 <script src="pigiama.js"></script>
 <script src="facile.js"></script>
+<script src="mappa.js"></script>
 <script>
 "use strict";
 const A = window.ARTE;
@@ -121,7 +122,14 @@ const ATTI = [
     'Qualcuno ha un problema?',
     'Anche quello ha una soluzione. Ed è sempre la stessa.',
     'E se una cosa è semplicemente <b>impossibile</b>?',
-    '\u2026si aggiusta pure quella.'
+    '\u2026si aggiusta pure quella.',
+    '<span class="nome">Gerardo</span>, ora per\u00f2 devi andare via.'
+  ],
+  [
+    'Ma parliamo dell\u2019evento.',
+    'Ecco il luogo dove avverr\u00e0 la festa.',
+    // INDIRIZZO DA CONFERMARE: qui va la via esatta del Cavallino Rosso
+    '<span class="nome">Cavallino Rosso</span><br>San Giovanni Rotondo (FG)'
   ]
 ];
 let attoCorrente = 0;
@@ -143,7 +151,10 @@ let FRASI = ATTI[0];
 const VISTE = {
   buio:    { LARG:80,  ALT:64,  sicura:80  },
   salotto: { LARG:124, ALT:104, sicura:124 },
-  facile:  { LARG:88,  ALT:68,  sicura:88  }
+  facile:  { LARG:88,  ALT:68,  sicura:88  },
+  // la mappa non ha margini sacrificabili: le scritte stanno sui bordi e
+  // vanno lette tutte, quindi la larghezza sicura e' tutta la tela
+  mappa:   { LARG:112, ALT:96,  sicura:112 }
 };
 let vista = VISTE.buio;
 let LARG = vista.LARG, ALT = vista.ALT;
@@ -442,6 +453,14 @@ function disegna(){
     requestAnimationFrame(disegna);
     return;
   }
+  if (stato === 'mappa'){
+    // la mappa ridipinge ogni pixel da se': nessuna pulitura preventiva
+    disegnaMappa();
+    riversa();
+    disegnaVelo();
+    requestAnimationFrame(disegna);
+    return;
+  }
 
   pulisciTela('#0b0a09');
   {
@@ -670,6 +689,7 @@ function finisci(html){
 
 function tocca(){
   if (stato === 'facile'){ avanzaFacile(); return; }
+  if (stato === 'mappa'){ avanzaMappa(); return; }
   if (stato !== 'racconto' && stato !== 'racconto2') return;
   // Nella seconda scena, se il racconto non e' ancora partito, il tocco
   // salta alla fine della sequenza del volume. Uno schermo dove toccare
@@ -698,11 +718,19 @@ document.getElementById('salta').addEventListener('click', () => {
     if (iFrase < 0) tSalotto = SC.fineVolume - 1;
     else { while (iFrase < FRASI.length - 1) prossimaFrase(); finisci(FRASI[iFrase]); }
   } else if (stato === 'facile'){
-    passoFacile = window.FACILE.PASSI.length - 1;
-    tPasso = 9999;
+    // salta direttamente alla mappa: e' li' che stanno data e luogo
+    elCornice.classList.remove('viva');
+    elAvanti.classList.remove('viva');
+    chiudiVelo(entraInMappa);
+  } else if (stato === 'mappa'){
+    // porta l'inquadratura sull'ultimo livello e mostra tutte le frasi
+    livelloMappa = window.MAPPA.LIVELLI.length - 1;
+    tMappa = fineAggancio();
+    strettaLibera = false;
     while (iFrase < FRASI.length - 1) prossimaFrase();
     finisci(FRASI[iFrase]);
     elAvanti.classList.add('viva');
+    elSuggerimento.style.display = 'none';
   }
 });
 
@@ -715,6 +743,10 @@ elAvanti.addEventListener('click', () => {
     elCornice.classList.remove('viva');
     elAvanti.classList.remove('viva');
     chiudiVelo(entraInFacile);
+  } else if (attoCorrente === 2){
+    elCornice.classList.remove('viva');
+    elAvanti.classList.remove('viva');
+    chiudiVelo(entraInMappa);
   } else {
     elAvanti.textContent = 'in arrivo\u2026';
   }
@@ -771,7 +803,12 @@ function disegnaFacile(){
   for (let x = 0; x < F.LARG; x += 3) P.punto(x, F.SUOLO + 2, '#1c1510');
 
   F.scatola(P, 4, F.SUOLO - 9, s.pesca);
-  A.attore(P, 22, F.SUOLO, { azione: 'fermo', t: tPasso + passoFacile * 97, pigiama: false });
+  // di solito sta fermo al suo posto; nel congedo cammina e se ne va
+  const xLui = s.xLui === undefined ? 22 : s.xLui;
+  A.attore(P, xLui, F.SUOLO, {
+    azione: s.camminaLui ? 'cammina' : 'fermo',
+    t: tPasso + passoFacile * 97, pigiama: false
+  });
 
   // il braccio che pesca nella scatola
   if (s.pesca){
@@ -791,10 +828,79 @@ function disegnaFacile(){
   // chi parla: sopra la persona se e' lei, sopra di lui se risponde
   if (s.dice === true)          A.fumetto(P, 30, 10, 'VOILAT', null, F.LARG);
   else if (typeof s.dice === 'string') A.fumetto(P, x - 2, 8, s.dice, null, F.LARG);
-  else if (s.diceLui)           A.fumetto(P, 26, 10, s.diceLui, null, F.LARG);
+  else if (s.diceLui)           A.fumetto(P, xLui + 4, 10, s.diceLui, null, F.LARG);
 
   // la freccia lampeggia quando il passo e' compiuto e si aspetta il tocco
   if (s.finito && !scrivendo) elFreccia.classList.add('viva');
+  else elFreccia.classList.remove('viva');
+}
+
+/* --------------------------------------------------------------------------
+   QUARTO ATTO — "ma parliamo dell'evento"
+   Lui e' uscito di scena: da qui in avanti l'invito parla a chi guarda, non
+   piu' di lui. La mappa viene letta come da una centrale operativa, e i tre
+   ingrandimenti sono scanditi dal tocco: ogni livello si acquisisce da solo,
+   poi ASPETTA. E' l'attesa a rendere l'ingrandimento un gesto di chi guarda
+   invece di un filmato che scorre.
+   -------------------------------------------------------------------------- */
+let livelloMappa = 0, tMappa = 0, strettaLibera = false;
+
+// l'istante in cui il bersaglio e' agganciato e la macchina si ferma
+function fineAggancio(){
+  const F = window.MAPPA.FASI;
+  return F.comparsa + F.scansione + F.agganciato;
+}
+
+function entraInMappa(){
+  vista = VISTE.mappa;
+  ridimensiona();
+  stato = 'mappa';
+  livelloMappa = 0; tMappa = 0; strettaLibera = false;
+  attoCorrente = 3; FRASI = ATTI[3]; iFrase = -1;
+  elAvanti.classList.remove('viva');
+  elSuggerimento.style.display = '';
+  elCornice.classList.add('viva');
+  prossimaFrase();                       // "Ma parliamo dell'evento."
+}
+
+function avanzaMappa(){
+  const M = window.MAPPA;
+  if (scrivendo){ finisci(FRASI[iFrase]); return; }
+
+  const ultimo = livelloMappa >= M.LIVELLI.length - 1;
+  if (ultimo){
+    // arrivati: il tocco serve solo a scorrere le ultime frasi
+    if (iFrase < FRASI.length - 1) prossimaFrase();
+    else { elAvanti.classList.add('viva'); elSuggerimento.style.display = 'none'; }
+    return;
+  }
+
+  // se l'acquisizione e' ancora in corso, il tocco la porta a termine;
+  // se e' finita, il tocco sblocca l'ingrandimento
+  if (tMappa < fineAggancio()) tMappa = fineAggancio();
+  else strettaLibera = true;
+}
+
+function disegnaMappa(){
+  const M = window.MAPPA;
+  const limite = fineAggancio();
+  const ultimo = livelloMappa >= M.LIVELLI.length - 1;
+
+  // il tempo si ferma ad aggancio avvenuto, finche' non arriva il tocco
+  const inAttesa = !ultimo && tMappa >= limite && !strettaLibera;
+  if (!inAttesa) tMappa++;
+
+  if (!ultimo && tMappa >= M.DURATA_LIVELLO){
+    livelloMappa++; tMappa = 0; strettaLibera = false;
+    // arrivati in paese: si dice dove siamo
+    if (livelloMappa >= M.LIVELLI.length - 1) prossimaFrase();
+  }
+
+  const s = M.stato(livelloMappa, tMappa);
+  M.disegna(P, s, fase);
+
+  if ((inAttesa || (ultimo && !scrivendo)) && !scrivendo)
+    elFreccia.classList.add('viva');
   else elFreccia.classList.remove('viva');
 }
 

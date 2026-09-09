@@ -237,7 +237,12 @@ const PASSI = [
   { cosa:'persona', modo:'entra',  durata:70, frase:3 },
   { cosa:'persona', modo:'ripara', durata:168, frase:4, ritardoFrase:96 },
   { cosa:'torre', modo:'entra',  durata:60, frase:5 },
-  { cosa:'torre', modo:'ripara', durata:110, frase:6, ritardoFrase:70 }
+  { cosa:'torre', modo:'ripara', durata:110, frase:6, ritardoFrase:70 },
+  /* Il congedo. Serve a togliere lui di scena prima di parlare della festa:
+     finche' e' inquadrato, l'invito resta una cosa che riguarda lui, e le
+     informazioni pratiche non sono per lui. Se ne va di sua volonta', con
+     l'unica parola che avrebbe detto davvero. */
+  { cosa:'congedo', modo:'esce', durata:150, frase:7 }
 ];
 
 const X_POSTO = 52;          // dove si fermano gli oggetti
@@ -252,6 +257,23 @@ function stato(passo, t){
   if (!p.cosa) return Object.assign(vuoto, { finito: true });
 
   const fine = t >= p.durata;
+
+  /* Gli si dice che deve andare via: ci pensa un attimo, non discute, e
+     se ne va camminando verso destra. Il "vabbuo'" arriva dopo una pausa,
+     perche' e' una resa, non una risposta pronta. */
+  if (p.cosa === 'congedo'){
+    const parlaDa = 26, parlaA = 70, partenza = 76;
+    const camm = t > partenza
+      ? Math.min(1, (t - partenza) / (p.durata - partenza)) : 0;
+    return Object.assign({}, vuoto, {
+      diceLui: (t >= parlaDa && t < parlaA) ? "VABBUO'" : false,
+      // passo costante: chi se ne va non rallenta arrivando al bordo, e con
+      // l'attenuazione morbida sembrava ripensarci proprio mentre usciva
+      xLui: 22 + camm * 82,
+      camminaLui: camm > 0 && camm < 1,
+      finito: fine
+    });
+  }
 
   if (p.modo === 'entra'){
     const q = Math.min(1, t / p.durata);

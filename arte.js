@@ -351,7 +351,11 @@ function passiDi(t){
   };
 }
 
-/* Fumetto con poche lettere: bastano quelle che gli servono davvero. */
+/* Alfabeto completo in 3x5. Era nato con le poche lettere delle sue battute,
+   ma la scena della mappa ha bisogno di parole vere (PUGLIA, TARGET, le
+   coordinate) e conviene averlo tutto una volta per sempre.
+   Dove tre colonne creavano ambiguita' si passa a quattro: la N sembrava una
+   K, la G era una O a cui mancava un pixel. */
 const GLIFI = {
   'M':["o.o","ooo","ooo","o.o","o.o"], 'h':["o..","o..","oo.","o.o","o.o"],
   'O':["ooo","o.o","o.o","o.o","ooo"], 'H':["o.o","o.o","ooo","o.o","o.o"],
@@ -362,6 +366,14 @@ const GLIFI = {
   'T':["ooo",".o.",".o.",".o.",".o."], 'S':["ooo","o..","ooo","..o","ooo"],
   'N':["o..o","oo.o","o.oo","o..o","o..o"], 'R':["oo.","o.o","oo.","o.o","o.o"],
   'D':["oo.","o.o","o.o","o.o","oo."],
+  'C':["ooo","o..","o..","o..","ooo"], 'F':["ooo","o..","ooo","o..","o.."],
+  // la G chiusa in basso si leggeva come un 6: gli angoli smussati e la
+  // barretta interna la staccano dalla O
+  'G':[".ooo","o...","o.oo","o..o",".ooo"],
+  'P':["oo.","o.o","oo.","o..","o.."],
+  // la Q col codino dentro il tondo era un 9: il codino esce a destra
+  'Q':["ooo.","o.o.","o.o.","ooo.","..oo"],
+  'Z':["ooo","..o",".o.","o..","ooo"],
   // In 3x5 non c'e' spazio per accento + O: si leggeva come una "d".
   // Con l'apostrofo il problema non esiste e la parola resta la sua.
   "'":["o","o",".",".","."],
@@ -371,7 +383,11 @@ const GLIFI = {
   '6':["ooo","o..","ooo","o.o","ooo"], '7':["ooo","..o","..o","..o","..o"],
   '8':["ooo","o.o","ooo","o.o","ooo"], '9':["ooo","o.o","ooo","..o","ooo"],
   '?':["oo.","..o",".o.","...",".o."],
-  '!':["o","o","o",".","o"], '.':[".",".",".",".","o"], ' ':[" "," "," "," "," "]
+  '!':["o","o","o",".","o"], '.':[".",".",".",".","o"], ' ':[" "," "," "," "," "],
+  // per le scritte da centrale operativa
+  ':':[".","o",".","o","."], ',':[".",".",".","o","o"],
+  '-':["...","...","ooo","...","..."], '/':["..o","..o",".o.","o..","o.."],
+  '°':["oo","oo","..","..",".."], '+':["...",".o.","ooo",".o.","..."]
 };
 
 /* Fumetto. Se gli si passa la larghezza della tela, si sposta da solo per
