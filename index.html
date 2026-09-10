@@ -19,14 +19,26 @@
 <style>
   :root{ --chiaro:#f2ece2; --tenue:#9c9184; --oro:#d9a93a; --rosso:#c4553f }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent }
-  html,body{ margin:0; height:100%; overflow:hidden; background:#0b0a09 }
+  html,body{
+    margin:0; height:100%; overflow:hidden; background:#0b0a09;
+    /* toglie l'ingrandimento col doppio tocco e i 300 ms di attesa che
+       certi telefoni mettono prima di decidere se era un tocco o no */
+    touch-action:manipulation;
+  }
+  /* l'altezza "vera" del telefono, quella che non salta quando la barra
+     dell'indirizzo si nasconde scorrendo */
+  @supports (height:100dvh){ html,body{ height:100dvh } }
   body{
     color:var(--chiaro); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     display:flex; flex-direction:column; user-select:none;
+    /* le tacche: sui telefoni col ritaglio in alto e la barra in basso,
+       senza questo il pulsante di uscita finisce sotto la fotocamera */
+    padding:env(safe-area-inset-top) env(safe-area-inset-right)
+            env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
 
   #palco{ flex:1; display:flex; align-items:center; justify-content:center; min-height:0; overflow:hidden; width:100% }
-  canvas{ image-rendering:pixelated; display:block; flex:0 0 auto; max-height:100% }
+  canvas{ image-rendering:pixelated; display:block; flex:0 0 auto; max-width:100%; max-height:100% }
 
   /* la cornice del racconto, come nei giochi di una volta */
   #cornice{
@@ -62,10 +74,16 @@
   #avanti.viva{ display:block }
 
   #salta{
-    position:fixed; top:12px; right:12px; z-index:5;
+    position:fixed; z-index:5;
+    top:calc(12px + env(safe-area-inset-top));
+    right:calc(12px + env(safe-area-inset-right));
     font:inherit; font-size:12px; color:var(--tenue);
     background:rgba(16,14,12,.7); border:1px solid #3a332c; border-radius:999px;
-    padding:7px 13px; cursor:pointer;
+    /* quarantaquattro pixel di altezza minima: sotto quella misura un
+       pulsante si sbaglia a premere col pollice, ed e' la soglia che
+       vale per chiunque non abbia vent'anni e mani ferme */
+    display:flex; align-items:center; min-height:44px;
+    padding:0 16px; cursor:pointer;
   }
   #salta:hover{ color:var(--chiaro); border-color:#5d534a }
 
@@ -82,7 +100,11 @@
   #scelta button{
     font:inherit; font-weight:800; font-size:clamp(20px,6vw,26px);
     letter-spacing:.1em; color:#fff; border:0; border-radius:14px;
-    padding:18px 0; width:130px; cursor:pointer; transition:transform .12s ease;
+    padding:18px 0; cursor:pointer; transition:transform .12s ease;
+    /* si adattano invece di stare fissi a 130: su uno schermo da 320 i due
+       pulsanti piu' lo spazio in mezzo non ci stavano e andavano a capo,
+       uno sopra l'altro */
+    flex:1 1 0; min-width:104px; max-width:150px;
   }
   #scelta button:active{ transform:scale(.94) }
   #si{ background:#2f9e52; box-shadow:0 6px 22px rgba(47,158,82,.34) }
@@ -99,6 +121,27 @@
     box-shadow:0 6px 22px rgba(37,211,102,.34);
   }
   #conferma.viva{ display:block }
+
+  /* TELEFONO CORICATO.
+     In verticale la cornice sta sotto la tela, e va benissimo. Coricato
+     no: su 390 pixel di altezza la cornice se ne prende 242 e alla scena
+     ne restano 140, cioe' un francobollo - la tela scendeva al venti per
+     cento della larghezza mentre ai lati avanzava mezzo schermo vuoto.
+     Affiancandole si usa lo spazio che c'e' davvero. */
+  @media (orientation:landscape) and (max-height:560px){
+    body{ flex-direction:row; align-items:center; gap:10px }
+    #palco{ flex:1 1 auto; min-width:0; height:100% }
+    #cornice{
+      flex:0 0 min(46%, 380px);
+      width:auto; margin:0 10px 0 0; min-height:0;
+      padding:16px 18px 20px;
+    }
+    #testo{ min-height:0; font-size:clamp(15px,2.2vw,18px) }
+    #avanti{ margin-top:10px; padding:12px 26px }
+    #scelta{ margin-top:12px }
+    #scelta button{ padding:14px 0; font-size:clamp(18px,3vw,24px) }
+    #suggerimento{ bottom:-20px }
+  }
 </style>
 </head>
 <body>
@@ -207,11 +250,46 @@ let scala = 4;
 
 function ridimensiona(){
   LARG = vista.LARG; ALT = vista.ALT;
-  const l = window.innerWidth - 8;
-  const a = Math.max(150, window.innerHeight - 230);
-  // la scala guarda la larghezza SICURA, non tutta la tela
-  scala = Math.max(2, Math.min(9, Math.floor(Math.min(l / vista.sicura, a / ALT))));
-  tela.width = LARG * scala; tela.height = ALT * scala;
+
+  /* Lo spazio si CHIEDE al palco, non si calcola.
+     Prima era una sottrazione a occhio: larghezza della finestra meno
+     otto, altezza meno duecentotrenta. Due stime, due modi di sbagliare.
+     L'altezza non teneva conto che nella scelta la cornice cresce di
+     settanta pixel per i due pulsanti; la larghezza non teneva conto
+     delle tacche di sicurezza, che sui telefoni col ritaglio mangiano
+     fino a quaranta pixel per lato quando lo si tiene coricato.
+     Il palco quelle cose le sa gia': basta misurarlo. */
+  const palco = document.getElementById('palco');
+  const l = Math.max(80, (palco.clientWidth  || window.innerWidth) - 8);
+  const a = Math.max(80, (palco.clientHeight || window.innerHeight - 230) - 8);
+
+  /* La scala si conta in PIXEL DELLO SCHERMO, non in pixel CSS.
+
+     Il motivo e' che l'arrotondamento all'intero, necessario perche' un
+     pixel d'arte resti un quadrato esatto, costa molto meno se il passo e'
+     fine. In pixel CSS su un telefono da 360 la scala del salotto e' 2,84
+     e arrotondata diventa 2: si buttano via 104 pixel di larghezza e il
+     personaggio resta alto 44 invece di 62. Contata sullo schermo vero,
+     che a tripla densita' offre 1056 punti, la scala e' 8,5 e arrotondata
+     diventa 8: si perde il sei per cento invece del trenta.
+
+     E' lo stesso arrotondamento, fatto su un righello piu' fitto.
+
+     Stirare invece la tela via CSS avrebbe riempito tutto, ma ogni pixel
+     d'arte sarebbe caduto ora su due punti ora su tre: e' esattamente il
+     difetto che si vede subito in un disegno fatto a pixel. */
+  const densita = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
+  const puntiL = l * densita, puntiA = a * densita;
+
+  scala = Math.max(2, Math.min(9 * densita,
+    Math.floor(Math.min(puntiL / vista.sicura, puntiA / ALT))));
+
+  tela.width = LARG * scala;
+  tela.height = ALT * scala;
+  // la misura a schermo e' quella del foglio riportata in pixel CSS
+  tela.style.width  = (LARG * scala / densita) + 'px';
+  tela.style.height = (ALT * scala / densita) + 'px';
+
   ctx.imageSmoothingEnabled = false;
   preparaTampone();
 }
@@ -232,6 +310,11 @@ const tctx = tampone.getContext('2d');
 let immagine = null, byte = null, LARG_T = 0, ALT_T = 0, sfondoSalvato = null;
 
 function preparaTampone(){
+  /* Se la tela d'arte non e' cambiata non si rifa' niente: cambiare solo
+     la scala a schermo non deve buttare via il disegno, o a ogni comparsa
+     di un pulsante si vedrebbe un lampo nero e il salotto ridipingerebbe
+     lo sfondo da capo. */
+  if (immagine && LARG_T === LARG && ALT_T === ALT) return;
   LARG_T = LARG; ALT_T = ALT;
   tampone.width = LARG_T; tampone.height = ALT_T;
   immagine = tctx.createImageData(LARG_T, ALT_T);
@@ -700,6 +783,22 @@ const elScelta = document.getElementById('scelta');
 const elSi = document.getElementById('si');
 const elNo = document.getElementById('no');
 const elConferma = document.getElementById('conferma');
+
+/* La cornice cambia altezza da sola: quando compare AVANTI, quando
+   arrivano i due pulsanti della scelta, quando una frase va a capo una
+   volta di piu'. Ogni volta cambia anche il posto che resta alla tela.
+   Un osservatore copre tutti questi casi insieme; a mano bisognava
+   ricordarsene in sei punti diversi, e dimenticarne uno voleva dire una
+   tela sgranata proprio nel momento in cui si deve rispondere. */
+if (window.ResizeObserver){
+  let ultimaAltezza = 0;
+  new ResizeObserver(righe => {
+    const h = Math.round(righe[0].contentRect.height);
+    if (h === ultimaAltezza) return;
+    ultimaAltezza = h;
+    ridimensiona();
+  }).observe(elCornice);
+}
 
 /* Il messaggio di conferma, gia' scritto.
    NUMERO DA CONFERMARE: lasciato vuoto di proposito. Senza numero, wa.me
