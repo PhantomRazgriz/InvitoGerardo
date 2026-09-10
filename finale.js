@@ -386,7 +386,7 @@ function statoScelta(t, esito, tE, rifiuti){
     azione: q < 1 ? 'cammina' : 'fermo',
     // arriva ancora furioso e si calma sedendosi
     rabbia: q < 1 ? 1 - q * (1 - RABBIA_SEDUTO[0]) : RABBIA_SEDUTO[Math.min(3, rifiuti)],
-    piange: false, mostraLui: true,
+    piange: false, mostraLui: true, occhiali: 0,
     porta: null, coriandoli: false, finito: false
   };
 
@@ -413,7 +413,19 @@ function statoScelta(t, esito, tE, rifiuti){
   }
 
   if (esito === 'no'){
-    s.rabbia = 1; s.piange = true;
+    /* La rabbia cala mentre se ne va: resta la faccia accesa e le
+       sopracciglia, spariscono i trattini attorno alla testa (che si
+       accendono solo sopra 0,5). Furioso E piangente erano due segnali
+       che si contendevano la stessa faccia; cosi' la rabbia diventa
+       dispiacere, che e' quello che gli succede davvero. */
+    s.rabbia = tE > FA.porta
+      ? Math.max(0.45, 1 - (tE - FA.porta) / 40) : 1;
+    s.piange = true;
+    /* Si tira su gli occhiali mentre se ne va. E' il gesto di chi si
+       asciuga gli occhi, e soprattutto e' l'unico modo di vederglieli:
+       la montatura scura li copre sempre, e senza occhi il pianto sono
+       solo due gocce azzurre su una faccia impassibile. */
+    s.occhiali = tE > FA.porta ? Math.min(1, (tE - FA.porta) / 18) : 0;
     const comparsa = Math.min(1, tE / FA.porta);
     const apre = tE > FA.porta + FA.cammina
       ? Math.min(1, (tE - FA.porta - FA.cammina) / FA.apre) : 0;

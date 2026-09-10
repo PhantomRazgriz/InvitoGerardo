@@ -70,8 +70,8 @@ if (modo === "poltrona"){
     { et: "sbianca", bianco: 0.5, entrata: 0.45, seduto: false, rabbia: 0.8 },
     { et: "bianco, arriva", bianco: 1, entrata: 1, seduto: false, rabbia: 0.5 },
     { et: "seduto, aspetta", bianco: 1, entrata: 1, seduto: true, rabbia: 0.2 },
-    { et: "primo no", bianco: 1, entrata: 1, seduto: true, rabbia: 0.5 },
-    { et: "terzo no", bianco: 1, entrata: 1, seduto: true, rabbia: 1 }
+    { et: "primo no", bianco: 1, entrata: 1, seduto: true, rabbia: 0.52, dice: "MA COME NO?!" },
+    { et: "secondo no", bianco: 1, entrata: 1, seduto: true, rabbia: 0.8, dice: "DAVVERO?!" }
   ];
   const { c, ctx, colonne } = tela(CASI.length, 3, "#fff");
   CASI.forEach((k, n) => {
@@ -87,6 +87,7 @@ if (modo === "poltrona"){
       azione: k.rabbia > 0.6 ? "sbuffa" : "fermo",
       t: 40, rabbia: k.rabbia, ombra: !k.seduto
     });
+    if (k.dice) A.fumetto(P, F.X_POLTRONA - 4, 5, k.dice, null, F.LARG);
     riquadro(ctx, gx, gy, k.et, k.bianco > 0.5);
   });
   fs.writeFileSync("anteprime/scelta.png", c.toBuffer("image/png"));
@@ -146,7 +147,7 @@ if (modo === "si" || modo === "no"){
       if (s.mostraLui){
         const r = A.attore(P, s.x, s.y, {
           azione: s.azione, t: tE, rabbia: s.rabbia,
-          ombra: s.y === F.SUOLO, largTela: F.LARG
+          occhialiQ: s.occhiali, ombra: true, largTela: F.LARG
         });
         if (s.piange) F.lacrime(P, r.cx, r.cy, tE);
       }
@@ -187,11 +188,15 @@ if (modo === "addio"){
       }
     }
     F.cuore(P, F.LARG / 2, F.ALT / 2, k.cuore, 20);
+    if (k.dice) A.fumetto(P, F.X_POLTRONA - 4, 5, k.dice, null, F.LARG);
     riquadro(ctx, gx, gy, k.et, k.bianco > 0.5);
   });
   fs.writeFileSync("anteprime/addio.png", c.toBuffer("image/png"));
   console.log("addio -> anteprime/addio.png");
 }
+
+
+
 
 
 

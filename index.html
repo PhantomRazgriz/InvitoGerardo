@@ -1090,13 +1090,17 @@ const DOMANDE = [
   '\u2026sei sicuro? Pensaci bene.',
   'Ultima possibilit\u00e0. Ci sarai?'
 ];
-const REAZIONI = ['MA COME NO', 'E ALLORA NO'];
+const REAZIONI = ['MA COME NO?!', 'DAVVERO?!'];
 
 let tScelta = 0, rifiuti = 0, esito = null, tEsito = 0, dettoAddio = false;
 // da quanto e' arrivato l'ultimo no: serve a far durare la battuta il giusto
 let tRifiuto = 9999;
 
 function entraInScelta(){
+  /* Si prepara la tela da se' invece di fidarsi di arrivare dalla caduta:
+     cosi' la scena regge anche se ci si entra di colpo. */
+  vista = VISTE.finale;
+  ridimensiona();
   stato = 'scelta';
   tScelta = 0; rifiuti = 0; esito = null; tEsito = 0; dettoAddio = false;
   tRifiuto = 9999;
@@ -1181,16 +1185,19 @@ function disegnaScelta(){
   if (s.mostraLui){
     const r = A.attore(P, s.x, s.y, {
       azione: s.azione, t: esito === 'si' ? tEsito : fase, rabbia: s.rabbia,
-      ombra: true, largTela: F.LARG
+      occhialiQ: s.occhiali, ombra: true, largTela: F.LARG
     });
     if (s.piange) F.lacrime(P, r.cx, r.cy, fase);
   }
 
   if (s.coriandoli) F.coriandoli(P, tEsito);
 
-  // le battute dei rifiuti, che non restano appese per sempre
+  /* Le battute dei rifiuti, che non restano appese per sempre.
+     La codina esce a quattro pixel dal bordo del fumetto: per farla cadere
+     sulla sua testa il fumetto va messo quattro pixel PRIMA di lui, non
+     dopo, o la battuta sembra detta da qualcuno di fianco. */
   if (!esito && rifiuti > 0 && rifiuti <= REAZIONI.length && tRifiuto < 70)
-    A.fumetto(P, F.X_POLTRONA + 6, 5, REAZIONI[rifiuti - 1], null, F.LARG);
+    A.fumetto(P, F.X_POLTRONA - 4, 5, REAZIONI[rifiuti - 1], null, F.LARG);
 
   // comparse: i pulsanti quando si siede, il verde a festa avviata
   if (s.seduto && !esito && !elScelta.classList.contains('viva'))
@@ -1232,6 +1239,12 @@ function disegnaVelo(){
 
 disegna();
 </script>
+
+<!-- SOLO PER LE PROVE: il selettore delle scene.
+     Si spegne da solo fuori dagli indirizzi locali, ma prima del rilascio
+     togliere comunque questa riga e cancellare il file. -->
+<script src="prova.js"></script>
+
 </body>
 </html>
 
