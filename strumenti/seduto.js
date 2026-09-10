@@ -34,13 +34,8 @@ CASI.forEach((k, n) => {
   }};
 
   F.suolo(P, 1);
-  const y = k.poltrona ? F.Y_SEDUTO : F.SUOLO;
-  F.poltrona(P, F.X_POLTRONA, "dietro", 1);
-  A.attore(P, F.X_POLTRONA, y, { azione: k.az, t: 40, rabbia: k.ra, ombra: false });
-  if (k.poltrona){
-    F.poltrona(P, F.X_POLTRONA, "davanti", 1);
-    F.poltrona(P, F.X_POLTRONA, "gambe", 1);
-  }
+  if (k.poltrona) F.poltrona(P, F.X_POLTRONA, 1);
+  A.attore(P, F.X_POLTRONA, F.SUOLO, { azione: k.az, t: 40, rabbia: k.ra, ombra: false });
 
   ctx.strokeStyle = "#ddd";
   ctx.strokeRect(gx * SCALA + .5, .5, L * SCALA - 1, AL * SCALA - 1);
@@ -52,25 +47,26 @@ CASI.forEach((k, n) => {
 fs.writeFileSync("anteprime/seduto.png", c.toBuffer("image/png"));
 console.log("seduto -> anteprime/seduto.png");
 
-/* La conta esatta: quali parti del corpo copre il mobile. */
-const cy = F.Y_SEDUTO - A.ALT_PERS;
-const PARTI = [["testa",0,12],["collo",13,13],["maglietta e braccia",14,23],
-               ["pantaloni",24,27],["gambe",28,30],["scarpe",31,33]];
+/* Il controllo che conta adesso non e' piu' "quanto copre il mobile" - la
+   poltrona sta tutta dietro, quindi non copre niente per costruzione - ma
+   che le due misure combacino: il piano della seduta deve cadere esatto
+   sulla linea dei fianchi, o per far toccare terra al personaggio bisogna
+   allungargli le gambe. E' l'errore che ha richiesto tre tentativi. */
+const cy = F.SUOLO - A.ALT_PERS;
+const fianchi = cy + 24;                 // riga 24 dello sprite: i pantaloni
+const sottoFianchi = A.ALT_PERS - 24;    // quanto e' alto dal fianco in giu
 
-const persona = new Map();
-A.attore({ punto(x,y,col){ if(col) persona.set(Math.round(x)+","+Math.round(y), 1); } },
-         F.X_POLTRONA, F.Y_SEDUTO, { azione:"fermo", t:40, rabbia:0.15, ombra:false });
-const mobile = new Set();
-F.poltrona({ punto(x,y,col){ if(col) mobile.add(Math.round(x)+","+Math.round(y)); } },
-           F.X_POLTRONA, "davanti", 1);
+console.log("");
+console.log("  dal fianco ai piedi:      " + sottoFianchi + " px");
+console.log("  linea dei fianchi:        y=" + fianchi);
+console.log("  piano della seduta:       y=" + F.POLT.ySeduta);
+console.log("  gambe da inventare:       " + (F.POLT.ySeduta - fianchi) + " px" +
+            (F.POLT.ySeduta === fianchi ? "   (nessuna: giusto)" : "   SBAGLIATO"));
 
-console.log("\nparte                 coperta dal mobile");
-for (const [nome, a, b] of PARTI){
-  let tot = 0, cop = 0;
-  for (const k of persona.keys()){
-    const r = +k.split(",")[1] - cy;
-    if (r < a || r > b) continue;
-    tot++; if (mobile.has(k)) cop++;
-  }
-  if (tot) console.log("  " + nome.padEnd(22) + String(Math.round(cop / tot * 100)).padStart(3) + "%");
-}
+const x0 = F.X_POLTRONA - Math.round(F.POLT.larg / 2);
+const x1 = x0 + F.POLT.larg - 1;
+const luce = (x1 - 6) - (x0 + 6) - 1;
+console.log("  luce fra i braccioli:     " + luce + " px  (spalle 16)");
+console.log(luce >= 17 && luce <= 20
+  ? "  la poltrona lo stringe: sembra seduto dentro"
+  : "  ATTENZIONE: troppo larga o troppo stretta");

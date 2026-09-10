@@ -129,19 +129,31 @@ function statoCaduta(t){
    Vista di fronte. Si disegna in due passate: 'dietro' lo schienale,
    'davanti' seduta e braccioli. Il personaggio va in mezzo alle due.
    -------------------------------------------------------------------------- */
-/* Le misure della poltrona, tutte riferite al piano su cui ci si siede.
-   La prima versione aveva il cuscino spesso 12 e il piano a tre pixel dal
-   pavimento: fra il cuscino e terra non restava spazio per le gambe, e
-   seduto veniva tagliato alla pancia. Di fronte, una persona seduta si
-   riconosce dalle ginocchia: senza, sembra sprofondata nel mobile.
-   Ora il piano e' piu' alto e il cuscino piu' sottile, e sotto ci sono
-   dodici pixel liberi in cui far scendere gli stinchi. */
+/* LE MISURE DELLA POLTRONA, prese sul personaggio e non a occhio.
+
+   Dal fianco ai piedi lui e' alto DIECI pixel: quattro di pantaloncini, tre
+   di stinco, tre di scarpa. In piedi, quindi, il suo fianco cade a y=52.
+
+   E' quello il numero che comanda tutto. Le prime due versioni avevano il
+   piano della seduta a venti pixel da terra, cioe' il doppio: per fargli
+   toccare terra ho finito col disegnargli dieci pixel di gamba che non ha,
+   ed e' per questo che sembrava allungato. Non era la posa a essere
+   sbagliata, era il mobile fuori scala.
+
+   Adesso il piano sta a y=52, esattamente sulla linea dei fianchi. Cosi'
+   lui si disegna INTERO e come sempre, coi piedi a terra e le gambe della
+   sua lunghezza: non si nasconde niente e non si inventa niente. E' la
+   poltrona a stargli intorno. */
+/* La larghezza e' presa sulle spalle, non a occhio: il corpo ne occupa 16,
+   e fra i due braccioli ce ne devono restare giusto 18. Con 36 la poltrona
+   gli stava larga e sembrava che ci stesse davanti in piedi, non dentro:
+   e' il mobile che lo stringe a dire che ci e' seduto. */
 const POLT = {
-  larg: 38,
-  ySeduta: 42,        // il piano su cui appoggia
-  cuscino: 8,         // spessore del cuscino
+  larg: 32,
+  ySeduta: 52,        // la linea dei fianchi: non si tocca
+  cuscino: 6,
   schienale: 30,      // quanto sale lo schienale sopra il piano
-  bracciolo: 7        // quanto salgono i braccioli sopra il piano
+  bracciolo: 10       // quanto salgono i braccioli sopra il piano
 };
 
 function rett(P, x0, y0, x1, y1, colore){
@@ -154,29 +166,12 @@ function cornice(P, x0, y0, x1, y1, colore){
   for (let y = y0; y <= y1; y++){ P.punto(x0, y, colore); P.punto(x1, y, colore); }
 }
 
-/* Gli stinchi e le scarpe di chi e' seduto.
-   Le cosce non si disegnano: di fronte sono scorciate a niente e il cuscino
-   le copre comunque. Bastano le due gambe che scendono dal filo del cuscino
-   fino a terra, alle stesse colonne che hanno nello sprite in piedi, o le
-   gambe non sembrano le sue. */
-function gambeSedute(P, cx, daY, aY){
-  const sx = Math.round(cx - A.LARG_PERS / 2);
-  for (const dx of [5, 12]){             // le due gambe nello sprite del corpo
-    for (let y = daY; y <= aY - 3; y++){
-      P.punto(sx + dx, y, A.C.o);
-      for (let i = 1; i <= 3; i++) P.punto(sx + dx + i, y, A.C.s);
-      P.punto(sx + dx + 4, y, A.C.o);
-    }
-    // calzino, scarpa e suola: le stesse tre righe dello sprite in piedi
-    rett(P, sx + dx - 1, aY - 2, sx + dx + 4, aY - 2, A.C.f);
-    rett(P, sx + dx - 1, aY - 1, sx + dx + 4, aY - 1, A.C.y);
-    rett(P, sx + dx - 1, aY,     sx + dx + 4, aY,     A.C.o);
-    P.punto(sx + dx - 1, aY - 2, A.C.o); P.punto(sx + dx + 4, aY - 2, A.C.o);
-    P.punto(sx + dx - 1, aY - 1, A.C.o); P.punto(sx + dx + 4, aY - 1, A.C.o);
-  }
-}
-
-function poltrona(P, cx, parte, entrata){
+/* La poltrona, tutta in una passata sola.
+   Sta INTERAMENTE dietro al personaggio: nessun pezzo del mobile passa
+   davanti a lui, quindi non c'e' piu' niente che possa sparire. E' un
+   cambio di impianto: prima il mobile lo copriva e bisognava decidere
+   ogni volta chi stesse davanti a chi, e ogni ramo sbagliava a modo suo. */
+function poltrona(P, cx, entrata){
   // entrata da 0 a 1: arriva da fuori, a sinistra
   const dx = Math.round((1 - (entrata === undefined ? 1 : entrata)) * -60);
   const x0 = Math.round(cx - POLT.larg / 2) + dx;
@@ -185,48 +180,36 @@ function poltrona(P, cx, parte, entrata){
   const yGiu = yS + POLT.cuscino;               // il filo sotto il cuscino
   const ySchiena = yS - POLT.schienale;
 
-  if (parte === 'dietro'){
-    // schienale, con la bordatura chiara in alto: gli da' volume
-    rett(P, x0 + 5, ySchiena, x1 - 5, yS + 2, COL.stoffa);
-    rett(P, x0 + 5, ySchiena, x1 - 5, ySchiena + 2, COL.stoffaSu);
-    cornice(P, x0 + 5, ySchiena, x1 - 5, yS + 2, COL.filo);
-    return;
-  }
+  // schienale, con la bordatura chiara in alto: gli da' volume
+  rett(P, x0 + 5, ySchiena, x1 - 5, yS + 2, COL.stoffa);
+  rett(P, x0 + 5, ySchiena, x1 - 5, ySchiena + 2, COL.stoffaSu);
+  cornice(P, x0 + 5, ySchiena, x1 - 5, yS + 2, COL.filo);
 
-  // le gambe di chi e' seduto: vanno DOPO il mobile, perche' gli stinchi
-  // di chi siede stanno davanti alla base della poltrona
-  if (parte === 'gambe'){
-    gambeSedute(P, cx + dx, yGiu, SUOLO);
-    return;
-  }
-
-  // braccioli: appoggiati sul piano, non alti fino alle spalle
+  // braccioli: la cima all'altezza dei gomiti, non delle spalle
   for (const bx of [x0, x1 - 6]){
     rett(P, bx, yS - POLT.bracciolo, bx + 6, yGiu, COL.stoffa);
     rett(P, bx, yS - POLT.bracciolo, bx + 6, yS - POLT.bracciolo + 2, COL.stoffaSu);
     cornice(P, bx, yS - POLT.bracciolo, bx + 6, yGiu, COL.filo);
   }
-  // il cuscino
+
+  // il cuscino: il suo filo superiore cade sulla linea dei fianchi
   rett(P, x0, yS, x1, yGiu, COL.stoffa);
   rett(P, x0, yS, x1, yS + 2, COL.stoffaSu);
-  rett(P, x0, yGiu - 1, x1, yGiu, COL.stoffaGiu);
   cornice(P, x0, yS, x1, yGiu, COL.filo);
-  /* La base, piena fino a terra. Prima c'erano quattro gambe di legno alte
-     dodici pixel e la poltrona sembrava su trampoli: a un mobile imbottito
-     serve peso in basso. Le gambe di chi ci siede passano DAVANTI a questa
-     base, come succede davvero. */
+
+  // la base, piena fino a terra: a un mobile imbottito serve peso in basso
   rett(P, x0 + 2, yGiu, x1 - 2, SUOLO - 2, COL.stoffaGiu);
   cornice(P, x0 + 2, yGiu, x1 - 2, SUOLO - 2, COL.filo);
-  // due piedini appena accennati
   for (const px of [x0 + 3, x1 - 6]){
     rett(P, px, SUOLO - 2, px + 3, SUOLO, COL.legno);
     cornice(P, px, SUOLO - 2, px + 3, SUOLO, COL.filo);
   }
 }
 
-/* Dove mettere i piedi "finti" del corpo in piedi perche' il taglio del
-   cuscino cada sui fianchi: otto pixel sotto il piano della seduta. */
-const Y_SEDUTO = POLT.ySeduta + 8;
+/* Seduto e in piedi stanno alla stessa altezza, perche' il piano della
+   seduta e' proprio la sua linea dei fianchi. Non e' una scorciatoia: e'
+   il motivo per cui non serve piu' nascondergli niente. */
+const Y_SEDUTO = SUOLO;
 
 /* --------------------------------------------------------------------------
    LA PORTA — compare solo se rifiuta tre volte
@@ -423,9 +406,8 @@ function statoScelta(t, esito, tE, rifiuti){
       s.x += b.inclina; s.y = SUOLO + b.dy; s.azione = b.azione;
       s.fase = 'ballo';
     } else {
-      /* Prima si tira su, poi si sposta: partendo gia' in piedi restava un
-         fotogramma con mezzo corpo dietro il cuscino, come tagliato. */
-      s.y = Y_SEDUTO + (SUOLO - Y_SEDUTO) * Math.min(1, alzata * 2.4);
+      // una spintarella per tirarsi su dalla poltrona, poi si sposta
+      s.y = SUOLO - (alzata < 0.4 ? 2 : 0);
       s.azione = 'cammina';
     }
   }
@@ -460,11 +442,6 @@ function statoScelta(t, esito, tE, rifiuti){
     }
   }
 
-  /* Le gambe da seduto si disegnano quando, e solo quando, e' appoggiato al
-     cuscino. Legarle all'altezza invece che alla fase evita di doverci
-     pensare in ogni ramo: se e' li', ci sono. */
-  s.gambe = s.mostraLui && Math.round(s.y) === Y_SEDUTO;
-
   return s;
 }
 
@@ -490,8 +467,7 @@ const API = {
   LARG, ALT, SUOLO, X_CADUTA, X_POLTRONA, Y_SEDUTO, X_BALLO, COL, POLT,
   FASI, DURATA_CADUTA, statoCaduta,
   SCE, FA, FINE_PORTA, RABBIA_SEDUTO, statoScelta,
-  poltrona, gambeSedute, porta, coriandoli, passoDiBallo, lacrime, cuore,
-  suolo, velo,
+  poltrona, porta, coriandoli, passoDiBallo, lacrime, cuore, suolo, velo,
   rett, cornice, TINTE_FESTA
 };
 if (typeof module !== 'undefined' && module.exports) module.exports = API;

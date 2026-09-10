@@ -81,14 +81,12 @@ if (modo === "poltrona"){
     for (let y = 0; y < F.ALT; y++)
       for (let x = 0; x < F.LARG; x++) P.punto(x, y, fondo);
     F.suolo(P, k.bianco);
-    F.poltrona(P, F.X_POLTRONA, "dietro", k.entrata);
+    F.poltrona(P, F.X_POLTRONA, k.entrata);
     const x = k.seduto ? F.X_POLTRONA : F.X_POLTRONA + 46;
-    A.attore(P, x, k.seduto ? F.Y_SEDUTO : F.SUOLO, {
+    A.attore(P, x, F.SUOLO, {
       azione: k.rabbia > 0.6 ? "sbuffa" : "fermo",
       t: 40, rabbia: k.rabbia, ombra: !k.seduto
     });
-    F.poltrona(P, F.X_POLTRONA, "davanti", k.entrata);
-    if (k.seduto) F.poltrona(P, F.X_POLTRONA, "gambe", k.entrata);
     riquadro(ctx, gx, gy, k.et, k.bianco > 0.5);
   });
   fs.writeFileSync("anteprime/scelta.png", c.toBuffer("image/png"));
@@ -105,8 +103,8 @@ if (modo === "festa"){
     for (let y = 0; y < F.ALT; y++)
       for (let x = 0; x < F.LARG; x++) P.punto(x, y, F.COL.bianco);
     F.suolo(P, 1);
-    F.poltrona(P, F.X_POLTRONA, "dietro", 1);
-    F.poltrona(P, F.X_POLTRONA, "davanti", 1);
+    F.poltrona(P, F.X_POLTRONA, 1);
+    
     const b = F.passoDiBallo(t);
     A.attore(P, 74 + b.inclina, F.SUOLO + b.dy, {
       azione: b.azione, t, rabbia: 0, ombra: true
@@ -135,28 +133,22 @@ if (modo === "si" || modo === "no"){
       for (let y = 0; y < F.ALT; y++)
         for (let x = 0; x < F.LARG; x++) P.punto(x, y, F.COL.bianco);
       F.suolo(P, 1);
-      F.poltrona(P, F.X_POLTRONA, "dietro", 1);
+      F.poltrona(P, F.X_POLTRONA, 1);
       F.porta(P, F.LARG - 16, F.SUOLO, 1, 1);
-      F.poltrona(P, F.X_POLTRONA, "davanti", 1);
       F.velo(P, s.buio);
       F.cuore(P, F.LARG / 2, F.ALT / 2 - 2, s.cuore, 20);
     } else {
       for (let y = 0; y < F.ALT; y++)
         for (let x = 0; x < F.LARG; x++) P.punto(x, y, F.COL.bianco);
       F.suolo(P, 1);
-      F.poltrona(P, F.X_POLTRONA, "dietro", 1);
+      F.poltrona(P, F.X_POLTRONA, 1);
       if (s.porta) F.porta(P, F.LARG - 16, F.SUOLO, s.porta.apre, s.porta.comparsa);
-      if (!s.gambe) F.poltrona(P, F.X_POLTRONA, "davanti", 1);
       if (s.mostraLui){
         const r = A.attore(P, s.x, s.y, {
           azione: s.azione, t: tE, rabbia: s.rabbia,
           ombra: s.y === F.SUOLO, largTela: F.LARG
         });
         if (s.piange) F.lacrime(P, r.cx, r.cy, tE);
-      }
-      if (s.gambe){
-        F.poltrona(P, F.X_POLTRONA, "davanti", 1);
-        F.poltrona(P, F.X_POLTRONA, "gambe", 1);
       }
       if (s.coriandoli) F.coriandoli(P, tE);
     }
@@ -200,6 +192,8 @@ if (modo === "addio"){
   fs.writeFileSync("anteprime/addio.png", c.toBuffer("image/png"));
   console.log("addio -> anteprime/addio.png");
 }
+
+
 
 
 

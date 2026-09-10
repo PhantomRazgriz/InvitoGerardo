@@ -1157,9 +1157,8 @@ function disegnaScelta(){
     // la scena resta, e il nero le si stende sopra
     pulisciTela(F.COL.bianco);
     F.suolo(P, 1);
-    F.poltrona(P, F.X_POLTRONA, 'dietro', 1);
+    F.poltrona(P, F.X_POLTRONA, 1);
     F.porta(P, F.LARG - 16, F.SUOLO, 1, 1);
-    F.poltrona(P, F.X_POLTRONA, 'davanti', 1);
     F.velo(P, s.buio);
     F.cuore(P, F.LARG / 2, F.ALT / 2 - 2, s.cuore, fase);
     if (s.finito && !dettoAddio){
@@ -1173,30 +1172,20 @@ function disegnaScelta(){
 
   pulisciTela(A.mescola(F.COL.buio, F.COL.bianco, s.bianco));
   F.suolo(P, s.bianco);
-  F.poltrona(P, F.X_POLTRONA, 'dietro', s.entrata);
-  /* La porta va PRIMA di lui: disegnata dopo, il vano scuro lo cancellava
-     proprio nel momento in cui entra, e l'uscita si perdeva. Davanti al
-     buio dell'apertura invece si vede bene che se ne sta andando. */
+  /* Poltrona e porta stanno tutte e due dietro di lui, sempre. Prima il
+     mobile lo copriva e bisognava decidere ogni volta chi passasse davanti
+     a chi: e' li' che sparivano i pezzi di corpo, un ramo alla volta. */
+  F.poltrona(P, F.X_POLTRONA, s.entrata);
   if (s.porta) F.porta(P, F.LARG - 16, F.SUOLO, s.porta.apre, s.porta.comparsa);
-
-  /* Chi sta in piedi passa DAVANTI alla poltrona; chi ci siede ci sta
-     dentro. Disegnando sempre il mobile per ultimo, mentre camminava via
-     gli tagliava via mezzo corpo e restava un busto che scivola. */
-  if (!s.gambe) F.poltrona(P, F.X_POLTRONA, 'davanti', s.entrata);
 
   if (s.mostraLui){
     const r = A.attore(P, s.x, s.y, {
       azione: s.azione, t: esito === 'si' ? tEsito : fase, rabbia: s.rabbia,
-      ombra: s.y === F.SUOLO, largTela: F.LARG
+      ombra: true, largTela: F.LARG
     });
     if (s.piange) F.lacrime(P, r.cx, r.cy, fase);
   }
 
-  // da seduto: prima il mobile sopra di lui, poi i suoi stinchi davanti
-  if (s.gambe){
-    F.poltrona(P, F.X_POLTRONA, 'davanti', s.entrata);
-    F.poltrona(P, F.X_POLTRONA, 'gambe', s.entrata);
-  }
   if (s.coriandoli) F.coriandoli(P, tEsito);
 
   // le battute dei rifiuti, che non restano appese per sempre
