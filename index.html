@@ -85,6 +85,24 @@
     display:flex; align-items:center; min-height:44px;
     padding:0 16px; cursor:pointer;
   }
+
+  /* l'interruttore del suono, gemello di quello di uscita ma a sinistra */
+  #audio{
+    position:fixed; z-index:5;
+    top:calc(12px + env(safe-area-inset-top));
+    left:calc(12px + env(safe-area-inset-left));
+    font:inherit; font-size:17px; line-height:1; color:var(--oro);
+    background:rgba(16,14,12,.7); border:1px solid #3a332c; border-radius:999px;
+    display:flex; align-items:center; justify-content:center;
+    min-height:44px; min-width:44px; padding:0; cursor:pointer;
+  }
+  #audio.muto{ color:#5d554a }
+  /* la sbarra del silenzio: disegnata, non affidata a un carattere che
+     su qualche telefono potrebbe non esserci */
+  #audio.muto::after{
+    content:''; position:absolute; width:24px; height:2px;
+    background:#8a7f6e; transform:rotate(-45deg); border-radius:2px;
+  }
   #salta:hover{ color:var(--chiaro); border-color:#5d534a }
 
   #suggerimento{
@@ -146,6 +164,7 @@
 </head>
 <body>
 
+<button id="audio" aria-label="suono">&#9834;</button>
 <button id="salta">Dammi solo data e luogo</button>
 
 <div id="palco"><canvas id="tela"></canvas></div>
@@ -168,9 +187,11 @@
 <script src="facile.js"></script>
 <script src="mappa.js"></script>
 <script src="finale.js"></script>
+<script src="suono.js"></script>
 <script>
 "use strict";
 const A = window.ARTE;
+const S = window.SUONO;
 
 /* ==========================================================================
    IL RACCONTO
@@ -612,6 +633,9 @@ function disegna(){
                  : (stato === 'mh' || stato === 'piroetta') ? 'fermo' : atto.azione;
     const t = (stato === 'ingresso' || stato === 'esce') ? fase : atto.t;
 
+    S.camminata(t, azione === 'cammina');
+    S.svapata(atto.t, azione === 'svapo');
+
     A.attore(P, px, SUOLO, {
       azione: azione === 'occhiali' ? 'fermo' : azione,
       t, occhialiQ, pigiama, largTela: LARG_T
@@ -676,6 +700,7 @@ function disegnaSalotto(){
     }
   } else {
     const azione = (s.posa === 'prende' || s.posa === 'punta') ? 'fermo' : 'cammina';
+    S.camminata(s.t, azione === 'cammina');
     A.attore(P, s.px, SAL.SEDUTA + 12, { azione, t: s.t, pigiama: true });
     // braccio allungato verso il bracciolo, o che punta alla televisione
     if (s.posa === 'prende' || s.posa === 'punta'){
@@ -847,11 +872,13 @@ function scriviA(html){
   const pezzi = html.split(/(<[^>]+>)/).filter(Boolean);
   let i = 0, j = 0, uscita = '';
   clearInterval(timer);
+  S.nuovaFrase();
   timer = setInterval(() => {
     if (i >= pezzi.length){ finisci(html); return; }
     const p = pezzi[i];
-    if (p.startsWith('<')){ uscita += p; i++; }
+    if (p.startsWith('<')){ uscita += p; i++; }   // i tag non fanno rumore
     else {
+      S.lettera(p[j]);
       uscita += p[j++];
       if (j >= p.length){ i++; j = 0; }
     }
@@ -887,7 +914,19 @@ function tocca(){
   else if (iFrase < FRASI.length) prossimaFrase();
 }
 
+/* Il primo tocco accende il motore del suono. Non prima: i telefoni non lo
+   permetterebbero, e comunque questo invito si apre dove capita. */
+const elAudio = document.getElementById('audio');
+if (!S.disponibile) elAudio.style.display = 'none';
+if (!S.acceso) elAudio.classList.add('muto');
+elAudio.addEventListener('pointerdown', e => e.stopPropagation());
+elAudio.addEventListener('click', e => {
+  e.stopPropagation();
+  elAudio.classList.toggle('muto', !S.commuta());
+});
+
 addEventListener('pointerdown', e => {
+  S.sveglia();
   if (e.target.id === 'avanti') return;
   tocca();
 });
@@ -1025,9 +1064,11 @@ function disegnaFacile(){
   F.scatola(P, 4, F.SUOLO - 9, s.pesca);
   // di solito sta fermo al suo posto; nel congedo cammina e se ne va
   const xLui = s.xLui === undefined ? 22 : s.xLui;
+  const tLui = tPasso + passoFacile * 97;
+  S.camminata(tLui, !!s.camminaLui);
   A.attore(P, xLui, F.SUOLO, {
     azione: s.camminaLui ? 'cammina' : 'fermo',
-    t: tPasso + passoFacile * 97, pigiama: false
+    t: tLui, pigiama: false
   });
 
   // il braccio che pesca nella scatola
@@ -1282,8 +1323,10 @@ function disegnaScelta(){
   if (s.porta) F.porta(P, F.LARG - 16, F.SUOLO, s.porta.apre, s.porta.comparsa);
 
   if (s.mostraLui){
+    const tLui = esito === 'si' ? tEsito : fase;
+    S.camminata(tLui, s.azione === 'cammina');
     const r = A.attore(P, s.x, s.y, {
-      azione: s.azione, t: esito === 'si' ? tEsito : fase, rabbia: s.rabbia,
+      azione: s.azione, t: tLui, rabbia: s.rabbia,
       occhialiQ: s.occhiali, ombra: true, largTela: F.LARG
     });
     if (s.piange) F.lacrime(P, r.cx, r.cy, fase);

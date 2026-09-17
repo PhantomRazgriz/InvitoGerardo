@@ -103,7 +103,8 @@ const SALTI = [
 const stile = document.createElement('style');
 stile.textContent = `
   #prova{
-    position:fixed; top:10px; left:10px; z-index:20;
+    /* sotto l'interruttore del suono, che sta nello stesso angolo */
+    position:fixed; top:64px; left:10px; z-index:20;
     display:flex; flex-wrap:wrap; gap:4px; max-width:min(420px, 62vw);
     font:12px/1 system-ui, sans-serif;
   }
@@ -181,3 +182,4 @@ console.log('  tasti: ' + SALTI.map(s => s[0]).join(' ') +
 console.log('  non compare sul sito pubblicato');
 
 })();
+
