@@ -379,7 +379,14 @@ function tacche(P, scorrimento){
    LA SEQUENZA
    Ogni livello: compare, scandisce, aggancia il bersaglio, poi stringe.
    -------------------------------------------------------------------------- */
-const FASI = { comparsa: 26, scansione: 54, agganciato: 34, stretta: 30 };
+/* La fase di aggancio e' passata da 34 fotogrammi a 70. Prima bastava
+   perche' subito dopo si aspettava il tocco, e il tempo per leggere se lo
+   prendeva chi guardava. Adesso che gli ingrandimenti vanno da soli quel
+   tempo deve starci dentro: BERSAGLIO ACQUISITO lampeggia ogni quattordici
+   fotogrammi, e in trentaquattro non faceva in tempo ad accendersi due
+   volte. In settanta lampeggia due volte e mezza, che e' quanto serve per
+   accorgersi che c'e' scritto qualcosa e leggerlo. */
+const FASI = { comparsa: 26, scansione: 54, agganciato: 70, stretta: 30 };
 const DURATA_LIVELLO = FASI.comparsa + FASI.scansione + FASI.agganciato + FASI.stretta;
 
 /* Interpola due livelli: e' cosi' che lo zoom diventa continuo invece di

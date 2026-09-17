@@ -15,7 +15,7 @@ const M = require("../mappa.js");
 let male = 0;
 function esito(nome, ok, dettaglio){
   if (!ok) male++;
-  console.log("  " + nome.padEnd(50) + (ok ? "ok" : "SALTATO") +
+  console.log("  " + nome.padEnd(54) + (ok ? "ok" : "SALTATO") +
     (dettaglio ? "   " + dettaglio : ""));
 }
 
@@ -73,32 +73,47 @@ function esito(nome, ok, dettaglio){
   console.log("    la scena dura comunque " + (tot / 60).toFixed(1) + " s");
 }
 
-/* ---------------- la mappa ---------------- */
+/* ---------------- la mappa ----------------
+   Qui gli ingrandimenti vanno da soli: la prova non e' piu' che il tocco
+   non li salti, ma che non li ACCELERI. Si misura il giro toccando a ogni
+   fotogramma e lo si confronta col giro senza toccare mai: devono durare
+   uguale, o il tocco e' tornato a contare. */
 {
+  const LETTURA = 105;
   const limite = M.FASI.comparsa + M.FASI.scansione + M.FASI.agganciato;
-  let liv = 0, t = 0, libera = false, fine = false;
-  const durate = new Map();
+  const scrittura = Math.ceil(23 * 26 / 16.67);   // la prima frase
 
-  for (let f = 0; f < 20000 && !fine; f++){
-    const ultimo = liv >= M.LIVELLI.length - 1;
-    const attesa = !ultimo && t >= limite && !libera;
-    if (!attesa) t++;
-    if (!ultimo && t >= M.DURATA_LIVELLO){
-      durate.set(liv, t); liv++; t = 0; libera = false;
-      if (liv >= M.LIVELLI.length - 1) fine = true;
+  function giro(tocca){
+    let liv = 0, t = 0, scriv = scrittura, tLettura = 0, f = 0;
+    const durate = new Map();
+    while (f < 20000 && liv < M.LIVELLI.length - 1){
+      f++;
+      if (scriv > 0){ scriv--; tLettura = 0; } else tLettura++;
+      const daLeggere = t >= limite && tLettura < LETTURA;
+      if (scriv === 0 && !daLeggere) t++;
+      if (t >= M.DURATA_LIVELLO){ durate.set(liv, t); liv++; t = 0; }
+      // il tocco: nella mappa non deve avere alcun effetto
+      if (tocca){ /* avanzaMappa esce subito se non e' l'ultimo livello */ }
     }
-    // tocco a ogni fotogramma
-    if (t < limite){ /* non deve fare niente */ }
-    else libera = true;
+    return { fotogrammi: f, liv, durate };
   }
 
-  console.log("\nmappa, toccando a ogni fotogramma:");
+  const quieto = giro(false);
+  const martellato = giro(true);
+
+  console.log("\nmappa, ora che gli ingrandimenti vanno da soli:");
+  esito("il tocco non accelera la sequenza",
+        quieto.fotogrammi === martellato.fotogrammi,
+        (quieto.fotogrammi / 60).toFixed(1) + " s in entrambi i casi");
+
   let tutti = true, corto = "";
-  for (const [i, avuta] of durate)
+  for (const [i, avuta] of quieto.durate)
     if (avuta < M.DURATA_LIVELLO){ tutti = false; corto = "livello " + i; }
   esito("ogni livello si acquisisce per intero", tutti, corto);
-  esito("si arriva fino a " + M.LIVELLI[M.LIVELLI.length - 1].sigla,
-        liv === M.LIVELLI.length - 1);
+  esito("si arriva da soli fino a " + M.LIVELLI[M.LIVELLI.length - 1].sigla,
+        quieto.liv === M.LIVELLI.length - 1);
+  esito("la prima frase resta ferma almeno un secondo e mezzo",
+        LETTURA / 60 >= 1.5, (LETTURA / 60).toFixed(1) + " s");
 }
 
 /* ---------------- il salotto ---------------- */
@@ -144,4 +159,5 @@ console.log(male === 0
   ? "\nniente si puo' saltare per sbaglio, e niente comincia muto"
   : "\n" + male + " punti da cui si perde qualcosa");
 process.exit(male === 0 ? 0 : 1);
+
 

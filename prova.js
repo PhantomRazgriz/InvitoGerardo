@@ -74,7 +74,6 @@ const SALTI = [
     scopri(); entraInMappa();
     livelloMappa = window.MAPPA.LIVELLI.length - 1;
     tMappa = fineAggancio();
-    strettaLibera = false;
     mostraFrase(1);
   }],
 

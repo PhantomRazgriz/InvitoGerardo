@@ -40,7 +40,7 @@ for (const h of NON_DEVE){
 const USATI = ["entraInSalotto", "entraInFacile", "entraInMappa", "entraInCaduta",
                "entraInScelta", "mostraFrase", "premuto", "fineAggancio",
                "tSalotto", "passoFacile", "tPasso", "livelloMappa", "tMappa",
-               "strettaLibera", "tScelta", "rifiuti", "tRifiuto", "SC", "DOMANDE"];
+               "tScelta", "rifiuti", "tRifiuto", "SC", "DOMANDE", "tLettura"];
 
 console.log("\nnomi presi dalla pagina:");
 for (const n of USATI){
@@ -60,3 +60,4 @@ if (iProva < 0) male++;
 
 console.log(male === 0 ? "\ntutto a posto" : "\n" + male + " problemi");
 process.exit(male === 0 ? 0 : 1);
+

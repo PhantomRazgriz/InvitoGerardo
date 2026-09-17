@@ -1049,7 +1049,6 @@ document.getElementById('salta').addEventListener('click', () => {
     // porta l'inquadratura sull'ultimo livello e mostra tutte le frasi
     livelloMappa = window.MAPPA.LIVELLI.length - 1;
     tMappa = fineAggancio();
-    strettaLibera = false;
     while (iFrase < FRASI.length - 1) prossimaFrase();
     finisci(FRASI[iFrase]);
     elAvanti.classList.add('viva');
@@ -1214,15 +1213,32 @@ function disegnaFacile(){
 
 /* --------------------------------------------------------------------------
    QUARTO ATTO — "ma parliamo dell'evento"
-   Lui e' uscito di scena: da qui in avanti l'invito parla a chi guarda, non
-   piu' di lui. La mappa viene letta come da una centrale operativa, e i tre
-   ingrandimenti sono scanditi dal tocco: ogni livello si acquisisce da solo,
-   poi ASPETTA. E' l'attesa a rendere l'ingrandimento un gesto di chi guarda
-   invece di un filmato che scorre.
-   -------------------------------------------------------------------------- */
-let livelloMappa = 0, tMappa = 0, strettaLibera = false;
 
-// l'istante in cui il bersaglio e' agganciato e la macchina si ferma
+   Lui e' uscito di scena: da qui in avanti l'invito parla a chi guarda,
+   non piu' di lui. La mappa viene letta come da una centrale operativa, e
+   i tre ingrandimenti VANNO DA SOLI.
+
+   Prima li comandava il tocco. Sembrava giusto - decidere quando stringere
+   e' un bel gesto - ma e' l'unica scena in cui non c'e' nessuno in campo:
+   e' uno strumento che lavora, e uno strumento non chiede il permesso a
+   ogni passaggio. Guardarlo fare e' piu' credibile che pilotarlo.
+
+   Il prezzo di toglierle il tocco e' che i tempi non li aggiusta piu'
+   nessuno: devono bastare cosi' come sono, anche a chi legge piano. Per
+   questo la pausa dopo l'aggancio e' lunga, e per questo c'e' una regola
+   in piu' - non si stringe mai prima che una frase comparsa sia rimasta
+   ferma abbastanza da poterla leggere.
+   -------------------------------------------------------------------------- */
+let livelloMappa = 0, tMappa = 0;
+
+/* Da quanti fotogrammi l'ultima frase ha finito di scriversi. Serve a
+   garantire la lettura: il contatore riparte da zero a ogni lettera che
+   compare, quindi quando arriva a LETTURA la frase e' ferma da quel
+   tanto. Senza, la prima frase sarebbe sparita insieme all'Italia. */
+let tLettura = 999;
+const LETTURA = 105;          // un secondo e tre quarti di frase ferma
+
+// l'istante in cui il bersaglio e' agganciato
 function fineAggancio(){
   const F = window.MAPPA.FASI;
   return F.comparsa + F.scansione + F.agganciato;
@@ -1232,32 +1248,23 @@ function entraInMappa(){
   vista = VISTE.mappa;
   ridimensiona();
   stato = 'mappa';
-  livelloMappa = 0; tMappa = 0; strettaLibera = false;
+  livelloMappa = 0; tMappa = 0; tLettura = 0;
   attoCorrente = 3; FRASI = ATTI[3]; iFrase = -1;
   elAvanti.classList.remove('viva');
-  elSuggerimento.style.display = '';
+  // niente "tocca per continuare": qui non c'e' niente da toccare
+  elSuggerimento.style.display = 'none';
   elCornice.classList.add('viva');
   prossimaFrase();                       // "Ma parliamo dell'evento."
 }
 
+/* Durante gli ingrandimenti il tocco non fa niente: vanno da soli.
+   Serve solo all'arrivo, per scorrere le ultime frasi. */
 function avanzaMappa(){
   const M = window.MAPPA;
+  if (livelloMappa < M.LIVELLI.length - 1) return;
   if (scrivendo){ finisci(FRASI[iFrase]); return; }
-
-  const ultimo = livelloMappa >= M.LIVELLI.length - 1;
-  if (ultimo){
-    // arrivati: il tocco serve solo a scorrere le ultime frasi
-    if (iFrase < FRASI.length - 1) prossimaFrase();
-    else { elAvanti.classList.add('viva'); elSuggerimento.style.display = 'none'; }
-    return;
-  }
-
-  /* Finche' la macchina sta acquisendo, il tocco non fa niente: prima
-     saltava la comparsa e la scansione, cioe' tutto quello che rende
-     credibile l'ingrandimento. Il tocco serve solo a decidere QUANDO
-     stringere, e quella e' l'unica cosa che deve decidere chi guarda. */
-  if (tMappa < fineAggancio()) return;
-  strettaLibera = true;
+  if (iFrase < FRASI.length - 1) prossimaFrase();
+  else { elAvanti.classList.add('viva'); elSuggerimento.style.display = 'none'; }
 }
 
 function disegnaMappa(){
@@ -1265,16 +1272,25 @@ function disegnaMappa(){
   const limite = fineAggancio();
   const ultimo = livelloMappa >= M.LIVELLI.length - 1;
 
-  /* Il tempo si ferma in due casi: ad aggancio avvenuto, finche' non arriva
-     il tocco; e mentre una frase si sta scrivendo, cosi' la scansione non
-     parte addosso a un testo che si sta ancora leggendo. */
-  const inAttesa = !ultimo && tMappa >= limite && !strettaLibera;
-  if (!inAttesa && !scrivendo) tMappa++;
+  // il contatore della lettura riparte a ogni lettera che compare
+  if (scrivendo) tLettura = 0; else tLettura++;
+
+  /* Il tempo dell'inquadratura si ferma in due casi.
+     Mentre una frase si scrive, perche' la scansione non parta addosso a
+     un testo che si sta ancora formando. E quando sarebbe ora di
+     stringere ma la frase e' comparsa da troppo poco: e' quella la
+     garanzia che nessuno resti indietro, adesso che non c'e' piu' un
+     tocco a fare da freno. */
+  const daLeggere = !ultimo && tMappa >= limite && tLettura < LETTURA;
+  if (!scrivendo && !daLeggere) tMappa++;
 
   if (!ultimo && tMappa >= M.DURATA_LIVELLO){
-    livelloMappa++; tMappa = 0; strettaLibera = false;
+    livelloMappa++; tMappa = 0;
     // arrivati in paese: si dice dove siamo
-    if (livelloMappa >= M.LIVELLI.length - 1) prossimaFrase();
+    if (livelloMappa >= M.LIVELLI.length - 1){
+      prossimaFrase();
+      elSuggerimento.style.display = '';   // da qui in poi si tocca di nuovo
+    }
   }
 
   const s = M.stato(livelloMappa, tMappa);
@@ -1288,7 +1304,9 @@ function disegnaMappa(){
 
   M.disegna(P, s, fase);
 
-  if ((inAttesa || (ultimo && !scrivendo)) && !scrivendo)
+  // la freccia solo all'arrivo: durante gli ingrandimenti inviterebbe a
+  // toccare uno schermo che non ha niente da ricevere
+  if (ultimo && !scrivendo)
     elFreccia.classList.add('viva');
   else elFreccia.classList.remove('viva');
 }
