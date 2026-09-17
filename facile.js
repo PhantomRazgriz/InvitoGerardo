@@ -242,7 +242,7 @@ const PASSI = [
      finche' e' inquadrato, l'invito resta una cosa che riguarda lui, e le
      informazioni pratiche non sono per lui. Se ne va di sua volonta', con
      l'unica parola che avrebbe detto davvero. */
-  { cosa:'congedo', modo:'esce', durata:150, frase:7 }
+  { cosa:'congedo', modo:'esce', durata:300, frase:7 }
 ];
 
 const X_POSTO = 52;          // dove si fermano gli oggetti
@@ -262,7 +262,16 @@ function stato(passo, t){
      se ne va camminando verso destra. Il "vabbuo'" arriva dopo una pausa,
      perche' e' una resa, non una risposta pronta. */
   if (p.cosa === 'congedo'){
-    const parlaDa = 26, parlaA = 70, partenza = 76;
+    /* Un congedo ha bisogno di tempi lunghi. Prima erano stretti: sentiva,
+       rispondeva e se ne andava in due secondi e mezzo, e il VABBUO'
+       restava appeso appena tre quarti di secondo - troppo poco perfino
+       per leggerlo, figurarsi per farlo pesare.
+       Ora: ci pensa mezzo secondo prima di rispondere, la parola resta
+       quasi due secondi, poi sta ancora fermo un secondo e mezzo prima di
+       muoversi. E' quella pausa a dire che non gli va.
+       Anche il passo e' piu' lento di prima: uno che se ne va controvoglia
+       non se ne va di corsa. */
+    const parlaDa = 34, parlaA = 148, partenza = 208;
     const camm = t > partenza
       ? Math.min(1, (t - partenza) / (p.durata - partenza)) : 0;
     return Object.assign({}, vuoto, {
@@ -324,5 +333,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 else radice.FACILE = API;
 
 })(typeof self !== 'undefined' ? self : this);
+
 
 

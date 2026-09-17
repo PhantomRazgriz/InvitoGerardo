@@ -234,7 +234,7 @@ const ATTI = [
     'Ecco il luogo dove avverr\u00e0 la festa.',
     // INDIRIZZO DA CONFERMARE: qui va la via esatta del Cavallino Rosso
     '<span class="nome">Cavallino Rosso</span><br>San Giovanni Rotondo (FG)<br>' +
-      '<span class="nome">sabato 7 novembre 2026</span>'
+      '<span class="nome">sabato 7 novembre 2026, ore 19:30</span>'
   ],
   [
     'Avete data e luogo.',
@@ -867,7 +867,8 @@ const NUMERO = ['39', '349', '797', '7607'].join('');
    proprio nome subito dopo. Senza, arriverebbero venti messaggi identici
    e nessuno saprebbe di chi sono. */
 const MESSAGGIO = 'Ci sar\u00f2 alla festa di Gerardo! ' +
-  'Sabato 7 novembre 2026, Cavallino Rosso, San Giovanni Rotondo.\n\nSono: ';
+  'Sabato 7 novembre 2026 alle 19:30, Cavallino Rosso, San Giovanni Rotondo.' +
+  '\n\nSono: ';
 
 elConferma.href = 'https://wa.me/' + NUMERO +
   '?text=' + encodeURIComponent(MESSAGGIO);
@@ -929,7 +930,22 @@ function finisci(html){
   elFreccia.classList.add('viva');
 }
 
+/* Due tocchi troppo ravvicinati sono un dito che trema, non due decisioni.
+   Un quarto di secondo di sordita' e' sotto la soglia in cui si avverte un
+   ritardo, e sopra quella in cui un tocco accidentale si sdoppia: senza,
+   bastava un contatto malfermo per saltare una frase intera senza averla
+   letta. */
+let ultimoTocco = 0;
+
 function tocca(){
+  const adesso = Date.now();
+  if (adesso - ultimoTocco < 250) return;
+  ultimoTocco = adesso;
+
+  // durante una dissolvenza non si tocca niente: la scena vecchia e'
+  // finita e quella nuova non e' cominciata
+  if (veloVerso) return;
+
   if (stato === 'facile'){ avanzaFacile(); return; }
   if (stato === 'mappa'){ avanzaMappa(); return; }
   // nella scelta si decide con i pulsanti: il tocco a vuoto non deve
@@ -945,7 +961,11 @@ function tocca(){
   // Nella seconda scena, se il racconto non e' ancora partito, il tocco
   // salta alla fine della sequenza del volume. Uno schermo dove toccare
   // non produce nulla sembra rotto, e l'utente smette di provare.
-  if (stato === 'racconto2' && iFrase < 0){ tSalotto = SC.fineVolume - 1; return; }
+  /* La sequenza del volume non si salta col tocco. Prima bastava sfiorare
+     lo schermo per bruciare nove pressioni e sette secondi di scena. Chi
+     ha davvero fretta ha il pulsante in alto a destra, che e' una scelta;
+     un dito appoggiato per sbaglio non lo e'. */
+  if (stato === 'racconto2' && iFrase < 0) return;
   if (scrivendo) finisci(FRASI[iFrase]);       // primo tocco: mostra tutto
   else if (iFrase < FRASI.length) prossimaFrase();
 }
@@ -1069,7 +1089,11 @@ function avanzaFacile(){
   const F = window.FACILE;
   if (scrivendo){ finisci(FRASI[iFrase]); return; }
   const s = F.stato(passoFacile, tPasso);
-  if (!s.finito){ tPasso = F.PASSI[passoFacile].durata; return; }
+  /* Se il gesto e' ancora in corso il tocco non fa NIENTE: prima lo
+     mandava alla fine, e chi sfiorava lo schermo si perdeva la battuta -
+     il tubo che si aggiusta, la nuvola, la persona che esce da operaio.
+     Sono le uniche cose che questa scena ha da dare. */
+  if (!s.finito) return;
 
   if (passoFacile >= F.PASSI.length - 1){
     elAvanti.classList.add('viva');
@@ -1193,10 +1217,12 @@ function avanzaMappa(){
     return;
   }
 
-  // se l'acquisizione e' ancora in corso, il tocco la porta a termine;
-  // se e' finita, il tocco sblocca l'ingrandimento
-  if (tMappa < fineAggancio()) tMappa = fineAggancio();
-  else strettaLibera = true;
+  /* Finche' la macchina sta acquisendo, il tocco non fa niente: prima
+     saltava la comparsa e la scansione, cioe' tutto quello che rende
+     credibile l'ingrandimento. Il tocco serve solo a decidere QUANDO
+     stringere, e quella e' l'unica cosa che deve decidere chi guarda. */
+  if (tMappa < fineAggancio()) return;
+  strettaLibera = true;
 }
 
 function disegnaMappa(){

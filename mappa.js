@@ -89,6 +89,7 @@ const BERSAGLIO = [15.7269, 41.7086];
 
 // il quando e il dove, in un posto solo: se cambiano, cambiano qui
 const DATA = '07/11/2026';
+const ORA = '19:30';
 const LUOGO = 'CAVALLINO ROSSO';
 
 /* --------------------------------------------------------------------------
@@ -508,6 +509,9 @@ function disegna(P, s, t){
        per cui esiste tutto il resto. La data ferma e il luogo lampeggiante:
        se lampeggiassero entrambi lo sguardo non saprebbe dove posarsi. */
     scritta(P, 4, ALT - 22, DATA, COL.mirino);
+    // l'ora di fianco alla data, staccata di sei pixel: attaccate si
+    // leggevano come un numero solo
+    scritta(P, 4 + largScritta(DATA) + 6, ALT - 22, ORA, COL.mirino);
     if (Math.floor(t / 16) % 2 === 0)
       scritta(P, 4, ALT - 15, LUOGO, COL.bersaglio);
   } else if (s.fase === 'agganciato'){
@@ -532,7 +536,7 @@ function disegna(P, s, t){
 }
 
 const API = {
-  LARG, ALT, COL, LIVELLI, BERSAGLIO, DATA, LUOGO, FASI, DURATA_LIVELLO,
+  LARG, ALT, COL, LIVELLI, BERSAGLIO, DATA, ORA, LUOGO, FASI, DURATA_LIVELLO,
   proiezione, riempi, contorno, segmento, strade, griglia, angoli,
   mirino, scansione, tacche, inquadratura, stato, disegna,
   scritta, largScritta, coordinate, barra,
@@ -542,3 +546,4 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 else radice.MAPPA = API;
 
 })(typeof self !== 'undefined' ? self : this);
+
