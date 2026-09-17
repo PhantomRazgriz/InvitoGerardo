@@ -637,6 +637,9 @@ function disegna(){
     S.camminata(t, azione === 'cammina');
     S.svapata(atto.t, azione === 'svapo');
     S.cambioAbito(stato === 'piroetta' ? tPiroetta : 0, PIROETTA);
+    S.sospiro(atto.azione === 'sbuffa');
+    S.occhiali(atto.azione === 'occhiali' && atto.t > 26);
+    S.squillo(atto.azione === 'telefono');
 
     A.attore(P, px, SUOLO, {
       azione: azione === 'occhiali' ? 'fermo' : azione,
@@ -659,6 +662,13 @@ function disegnaSalotto(){
   // la televisione quando si accende, e uno scatto per ogni pressione
   S.tv(s.tvAccesa);
   S.volume(s.volume, s.volume >= 70);
+  S.prendeTelecomando(s.posa === 'prende');
+  S.siSiede(s.posa === 'siede');
+  // i gesti da seduto: il canale, e il respiro di chi dorme
+  S.cambiaCanale(s.libero && gesto.nome === 'canale' && gesto.t > 6);
+  const dorme = s.libero && gesto.nome === 'dorme';
+  S.russa(gesto.t, dorme);
+  S.scoppiaPalloncino(gesto.t - 26, dorme && gesto.t > 26);
 
   // 1. la stanza. Non cambia mai un pixel: la si disegna al primo
   //    fotogramma e da lì in poi si ricopia il buffer, che costa una
@@ -929,7 +939,10 @@ if (!S.acceso) elAudio.classList.add('muto');
 elAudio.addEventListener('pointerdown', e => e.stopPropagation());
 elAudio.addEventListener('click', e => {
   e.stopPropagation();
-  elAudio.classList.toggle('muto', !S.commuta());
+  const ora = S.commuta();
+  elAudio.classList.toggle('muto', !ora);
+  // riaccendendolo si sente subito che e' tornato: spegnendolo, no
+  if (ora) S.tocco();
 });
 
 addEventListener('pointerdown', e => {
@@ -944,6 +957,7 @@ addEventListener('keydown', e => {
 /* L'uscita di sicurezza. Chi vuole solo sapere quando e dove non deve
    restare in trappola dentro le scene: manda avanti quella corrente. */
 document.getElementById('salta').addEventListener('click', () => {
+  S.tocco();
   if (stato === 'racconto' || stato === 'mh' || stato === 'ingresso'){
     stato = 'racconto';
     while (iFrase < FRASI.length - 1) prossimaFrase();
@@ -978,6 +992,7 @@ document.getElementById('salta').addEventListener('click', () => {
 });
 
 elAvanti.addEventListener('click', () => {
+  S.tocco();
   if (attoCorrente === 0){
     elCornice.classList.remove('viva');
     elAvanti.classList.remove('viva');
@@ -1002,8 +1017,11 @@ elAvanti.addEventListener('click', () => {
   }
 });
 
-elSi.addEventListener('click', e => { e.stopPropagation(); premuto('si'); });
-elNo.addEventListener('click', e => { e.stopPropagation(); premuto('no'); });
+/* Il si' e il no suonano diversi apposta: quello che si e' scelto si
+   sente prima ancora di rileggerlo. */
+elSi.addEventListener('click', e => { e.stopPropagation(); S.conferma(); premuto('si'); });
+elNo.addEventListener('click', e => { e.stopPropagation(); S.rifiuto(); premuto('no'); });
+elConferma.addEventListener('click', () => S.conferma());
 
 /* --------------------------------------------------------------------------
    TERZO ATTO — "per lui e' tutto facile"
@@ -1046,6 +1064,18 @@ function avanzaFacile(){
 function disegnaFacile(){
   const F = window.FACILE;
   const p = F.PASSI[passoFacile];
+  {
+    // i suoni del passo in corso, prima che il tempo avanzi
+    const q = F.stato(passoFacile, tPasso);
+    S.oggettoArriva(p.modo === 'entra' && tPasso < 8);
+    S.frugaScatola(!!q.pesca);
+    S.riparazione(q.polvere >= 0 && q.polvere < 6);
+    // il tubo perde finche' non e' aggiustato
+    S.perdita(tPasso, q.cosa === 'tubo' && q.q < 0.5);
+    // le uniche due volte in cui si sentono parlare
+    S.diceTriste(q.dice === 'SONO TRISTE');
+    S.diceLavora(q.diceLui === 'LAVORA');
+  }
 
   /* L'animazione del passo non parte finche' la frase d'apertura non e'
      scritta per intero: era questo a far succedere le cose prima che si
@@ -1167,6 +1197,14 @@ function disegnaMappa(){
   }
 
   const s = M.stato(livelloMappa, tMappa);
+
+  // suoni da strumento: puliti, a tono fisso, senza calore. E' l'unica
+  // scena senza una persona dentro, e si deve sentire
+  S.scansione(s.fase === 'scansione');
+  S.aggancio(s.fase === 'agganciato' && !s.ultimo);
+  S.ingrandisce(s.fase === 'stretta');
+  S.arrivati(s.ultimo);
+
   M.disegna(P, s, fase);
 
   if ((inAttesa || (ultimo && !scrivendo)) && !scrivendo)
@@ -1309,6 +1347,9 @@ function disegnaScelta(){
   // momento esatto in cui sparisce dentro il vano
   S.coriandoli(esito === 'si');
   S.portaChiusa(esito === 'no' && !s.mostraLui);
+  S.poltronaEntra(tScelta > 3 && tScelta < 50);
+  S.siSiede(s.seduto && !esito);
+  S.cuore(s.cuore > 0.15);
 
   if (s.fase === 'addio'){
     // la scena resta, e il nero le si stende sopra

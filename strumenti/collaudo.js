@@ -207,18 +207,25 @@ for (const [n, alt] of TOCCHI)
    3. QUANTO PESA
    ------------------------------------------------------------------------- */
 const fs = require("fs");
+const zlib = require("zlib");
 console.log("\nPESO DI QUELLO CHE SI SCARICA");
-let tot = 0;
+let tot = 0, compresso = 0;
 for (const f of ["index.html", "arte.js", "salotto.js", "pigiama.js",
                  "facile.js", "mappa.js", "finale.js", "suono.js"]){
-  const kb = fs.statSync(f).size / 1024;
-  tot += kb;
-  console.log("  " + f.padEnd(14) + kb.toFixed(1).padStart(6) + " KB");
+  const dati = fs.readFileSync(f);
+  tot += dati.length / 1024;
+  compresso += zlib.gzipSync(dati).length / 1024;
+  console.log("  " + f.padEnd(14) + (dati.length / 1024).toFixed(1).padStart(6) + " KB");
 }
-console.log("  " + "TOTALE".padEnd(14) + tot.toFixed(1).padStart(6) + " KB" +
-  (tot < 200 ? "   (si apre subito anche in 3G)" : "   pesante"));
+console.log("  " + "TOTALE".padEnd(14) + tot.toFixed(1).padStart(6) + " KB");
+/* Quello che conta e' il compresso: i server lo mandano cosi'. Sotto i
+   150 KB una pagina si apre in un paio di secondi anche con una linea
+   lenta, che e' la condizione in cui qualcuno la aprira' davvero. */
+console.log("  " + "in rete".padEnd(14) + compresso.toFixed(1).padStart(6) + " KB compressi" +
+  (compresso < 150 ? "   (si apre subito anche in 3G)" : "   da alleggerire"));
 const social = fs.statSync("anteprime/social.png").size / 1024;
 console.log("  anteprima social " + social.toFixed(1) + " KB (solo per WhatsApp, non per la pagina)");
+
 
 
 

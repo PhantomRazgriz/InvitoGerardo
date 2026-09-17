@@ -354,6 +354,200 @@ function lettera(ch){
 function nuovaFrase(){ quante = 0; }
 
 /* --------------------------------------------------------------------------
+   LE VOCI
+
+   Si sentono parlare una volta sola in tutto l'invito: la persona triste
+   che dice SONO TRISTE, e Gerardo che risponde LAVORA. E' una scelta, non
+   una dimenticanza. Tutte le altre battute - Mh, VABBUO', VOILAT, AMO' -
+   restano mute, e proprio per questo quelle due si sentono davvero.
+
+   Non sono parole: sono due o tre grugniti a tono fisso, come nei giochi
+   di una volta. La differenza fra i due sta tutta nell'altezza e nella
+   forma d'onda. Gerardo e' GRAVE - dente di sega bassa, ruvida, che si
+   appoggia; la persona triste e' piu' alta e sottile, e scende, perche'
+   lamentarsi e' una frase che cade.
+-------------------------------------------------------------------------- */
+function grugnito(o){
+  if (!vivo()) return;
+  for (let i = 0; i < o.sillabe; i++){
+    const f = o.tono * (1 + (Math.random() - 0.5) * 0.1);
+    nota({ da: f, a: f * o.china, durata: o.lunga, volume: o.volume,
+           tipo: o.tipo, ritardo: i * o.passo });
+    // un filo di fruscio sopra: e' quello che lo fa sembrare una bocca
+    raffica({ da: f * 6, a: f * 3, durata: o.lunga * 0.8,
+              volume: o.volume * 0.35, tipo: 'bandpass', q: 3,
+              ritardo: i * o.passo });
+  }
+}
+
+// GERARDO: grave, ruvido, e che NON scende - non chiede, ordina
+function voceGerardo(){
+  grugnito({ sillabe: 3, tono: 104, china: 1.0, lunga: 0.11,
+             passo: 0.125, volume: 0.10, tipo: 'sawtooth' });
+}
+
+// la persona triste: piu' alta, morbida, e in discesa
+function voceTriste(){
+  grugnito({ sillabe: 3, tono: 232, china: 0.78, lunga: 0.13,
+             passo: 0.15, volume: 0.055, tipo: 'triangle' });
+}
+
+/* --------------------------------------------------------------------------
+   I PULSANTI
+   Un pulsante che non risponde sembra rotto, e si preme due volte. Il si'
+   e il no hanno due toni diversi apposta: quello che si e' scelto si sente
+   prima ancora di leggerlo.
+   -------------------------------------------------------------------------- */
+function tocco(){
+  if (!vivo()) return;
+  nota({ da: 1150, a: 900, durata: 0.035, volume: 0.06, tipo: 'square' });
+}
+function conferma(){
+  if (!vivo()) return;
+  nota({ da: 620, a: 620, durata: 0.08, volume: 0.075, tipo: 'triangle' });
+  nota({ da: 930, a: 930, durata: 0.13, volume: 0.07, tipo: 'triangle',
+         ritardo: 0.075 });
+}
+function rifiuto(){
+  if (!vivo()) return;
+  nota({ da: 300, a: 300, durata: 0.09, volume: 0.08, tipo: 'square' });
+  nota({ da: 210, a: 190, durata: 0.17, volume: 0.075, tipo: 'square',
+         ritardo: 0.085 });
+}
+
+/* --------------------------------------------------------------------------
+   LA SCENA DEL SALOTTO
+   -------------------------------------------------------------------------- */
+function presa(){                    // raccoglie il telecomando
+  if (!vivo()) return;
+  raffica({ da: 2600, a: 900, durata: 0.07, volume: 0.05, tipo: 'bandpass', q: 2 });
+  nota({ da: 340, a: 260, durata: 0.05, volume: 0.04, tipo: 'square' });
+}
+function siede(){                    // il peso che affonda nel cuscino
+  if (!vivo()) return;
+  raffica({ da: 900, a: 200, durata: 0.34, volume: 0.09,
+            tipo: 'lowpass', attacco: 0.03 });
+  nota({ da: 120, a: 66, durata: 0.2, volume: 0.06, tipo: 'sine' });
+}
+function canale(){                   // scatto del tasto e un soffio di scariche
+  if (!vivo()) return;
+  nota({ da: 900, a: 900, durata: 0.03, volume: 0.06, tipo: 'square' });
+  raffica({ da: 4000, a: 1200, durata: 0.14, volume: 0.06,
+            tipo: 'highpass', ritardo: 0.03 });
+}
+/* Il russare e' un giro lungo: un respiro dentro e uno fuori, e il
+   palloncino che scoppia in fondo. Va tenuto molto basso, o dopo tre
+   giri si vorrebbe svegliarlo. */
+function russaDentro(){
+  if (!vivo()) return;
+  raffica({ da: 260, a: 700, durata: 0.75, volume: 0.06,
+            tipo: 'lowpass', attacco: 0.3 });
+  nota({ da: 62, a: 78, durata: 0.75, volume: 0.05, tipo: 'sawtooth' });
+}
+function russaFuori(){
+  if (!vivo()) return;
+  raffica({ da: 600, a: 200, durata: 0.6, volume: 0.045,
+            tipo: 'lowpass', attacco: 0.18 });
+}
+function palloncino(){
+  if (!vivo()) return;
+  nota({ da: 1500, a: 400, durata: 0.06, volume: 0.05, tipo: 'triangle' });
+}
+
+/* --------------------------------------------------------------------------
+   LA SCENA DELLE RIPARAZIONI
+   -------------------------------------------------------------------------- */
+function arriva(){                   // un oggetto che scivola dentro
+  if (!vivo()) return;
+  raffica({ da: 300, a: 1600, durata: 0.34, volume: 0.06,
+            tipo: 'bandpass', q: 1.1, attacco: 0.16 });
+}
+function fruga(){                    // pesca nella cassetta degli attrezzi
+  if (!vivo()) return;
+  for (let i = 0; i < 3; i++)
+    raffica({ da: 3000 + Math.random() * 2000, a: 1200, durata: 0.05,
+              volume: 0.045, tipo: 'bandpass', q: 3,
+              ritardo: i * 0.075 + Math.random() * 0.03 });
+}
+function aggiusta(){                 // la nuvola, e sotto la nuvola il lavoro
+  if (!vivo()) return;
+  raffica({ da: 2600, a: 300, durata: 0.5, volume: 0.085, tipo: 'lowpass' });
+  for (let i = 0; i < 4; i++)
+    nota({ da: 520 + i * 90, a: 520 + i * 90, durata: 0.05,
+           volume: 0.04, tipo: 'square', ritardo: 0.06 + i * 0.085 });
+}
+function goccia(){                   // il tubo che perde
+  if (!vivo()) return;
+  nota({ da: 1500, a: 620, durata: 0.06, volume: 0.045, tipo: 'sine' });
+}
+
+/* --------------------------------------------------------------------------
+   LA MAPPA
+   Suoni da strumento: puliti, a tono fisso, senza calore. E' l'unica scena
+   in cui non c'e' una persona, e si deve sentire.
+   -------------------------------------------------------------------------- */
+function scansione(){
+  if (!vivo()) return;
+  raffica({ da: 400, a: 3000, durata: 0.9, volume: 0.035,
+            tipo: 'bandpass', q: 4, attacco: 0.25 });
+}
+function aggancio(){
+  if (!vivo()) return;
+  nota({ da: 1400, a: 1400, durata: 0.06, volume: 0.06, tipo: 'square' });
+  nota({ da: 1400, a: 1400, durata: 0.06, volume: 0.06, tipo: 'square',
+         ritardo: 0.1 });
+}
+function ingrandisce(){
+  if (!vivo()) return;
+  raffica({ da: 900, a: 4200, durata: 0.36, volume: 0.06,
+            tipo: 'bandpass', q: 1.4, attacco: 0.2 });
+  nota({ da: 220, a: 560, durata: 0.36, volume: 0.045, tipo: 'sine' });
+}
+function arrivati(){
+  if (!vivo()) return;
+  const note = [523, 659, 784];        // do mi sol: e' arrivato, punto
+  note.forEach((f, i) =>
+    nota({ da: f, a: f, durata: 0.16, volume: 0.06, tipo: 'triangle',
+           ritardo: i * 0.1 }));
+}
+
+/* --------------------------------------------------------------------------
+   IL FINALE
+   -------------------------------------------------------------------------- */
+function poltronaEntra(){
+  if (!vivo()) return;
+  raffica({ da: 500, a: 180, durata: 0.7, volume: 0.06,
+            tipo: 'lowpass', attacco: 0.3 });
+}
+function cuore(){
+  if (!vivo()) return;
+  const note = [784, 988, 1175];
+  note.forEach((f, i) =>
+    nota({ da: f, a: f, durata: 0.5, volume: 0.035, tipo: 'sine',
+           ritardo: i * 0.16 }));
+}
+
+/* --------------------------------------------------------------------------
+   I GESTI DELLA PRIMA SCENA
+   -------------------------------------------------------------------------- */
+function sospiro(){
+  if (!vivo()) return;
+  raffica({ da: 900, a: 300, durata: 0.6, volume: 0.05,
+            tipo: 'lowpass', attacco: 0.2 });
+}
+function occhiali(){
+  if (!vivo()) return;
+  raffica({ da: 3400, a: 1600, durata: 0.05, volume: 0.04, tipo: 'bandpass', q: 3 });
+}
+function squillo(){
+  if (!vivo()) return;
+  for (let g2 = 0; g2 < 2; g2++)
+    for (let i = 0; i < 2; i++)
+      nota({ da: i ? 1050 : 800, a: i ? 1050 : 800, durata: 0.11,
+             volume: 0.055, tipo: 'square', ritardo: g2 * 0.5 + i * 0.13 });
+}
+
+/* --------------------------------------------------------------------------
    L'INTERRUTTORE
    -------------------------------------------------------------------------- */
 function commuta(){
@@ -365,16 +559,77 @@ function commuta(){
   return acceso;
 }
 
+/* Un battito periodico: serve alle cose che continuano, come il tubo che
+   gocciola o il respiro di chi dorme. */
+function ogni(nome, t, sta, periodo, fai){
+  if (!sta){ azzera(nome); return; }
+  const s = seq[nome] || (seq[nome] = { t: -1, fatte: new Set() });
+  if (t < s.t) s.fatte.clear();
+  s.t = t;
+  const colpo = Math.floor(t / periodo);
+  if (!s.fatte.has(colpo)){ s.fatte.add(colpo); fai(); }
+}
+
 const API = {
   sveglia, commuta,
-  // i richiami che usa la pagina: dicono COSA succede, non che suono fare
+
+  /* I richiami che usa la pagina dicono COSA succede, non che suono fare.
+     Se un giorno il tonfo della porta diventa un cigolio, la pagina non
+     cambia di una riga. */
   camminata, svapata, lettera, nuovaFrase, volume, volumeDaCapo, cambioAbito,
-  tv:        a => scatto('tv',    a, tvAccende),
-  impatto:   a => scatto('botta', a, botta),
-  coriandoli: a => scatto('festa', a, festa),
-  portaChiusa: a => scatto('porta', a, porta),
-  // i suoni nudi, per provarli
+  tv:          a => scatto('tv',      a, tvAccende),
+  impatto:     a => scatto('botta',   a, botta),
+  coriandoli:  a => scatto('festa',   a, festa),
+  portaChiusa: a => scatto('porta',   a, porta),
+
+  // le voci: una volta sola in tutto l'invito
+  diceLavora:  a => scatto('lavora',  a, voceGerardo),
+  diceTriste:  a => scatto('triste',  a, voceTriste),
+
+  // i pulsanti
+  tocco, conferma, rifiuto,
+
+  // il salotto
+  prendeTelecomando: a => scatto('presa',   a, presa),
+  siSiede:           a => scatto('siede',   a, siede),
+  cambiaCanale:      a => scatto('canale',  a, canale),
+  /* Il palloncino del sonno si gonfia e scoppia ogni 130 fotogrammi, e
+     scoppia al 72 per cento del giro: il numero viene da arte.js, non me
+     lo invento qui. */
+  scoppiaPalloncino: (t, sta) => {
+    if (!sta){ azzera('pallone'); return; }
+    sequenza('pallone', t % 130, [[Math.round(130 * 0.72), palloncino]]);
+  },
+  russa: (t, sta) => {
+    if (!sta){ azzera('russa'); return; }
+    sequenza('russa', t % 150, [[0, russaDentro], [78, russaFuori]]);
+  },
+
+  // le riparazioni
+  oggettoArriva: a => scatto('arriva',  a, arriva),
+  frugaScatola:  a => scatto('fruga',   a, fruga),
+  riparazione:   a => scatto('aggiusta',a, aggiusta),
+  perdita: (t, sta) => ogni('goccia', t, sta, 26, goccia),
+
+  // la mappa
+  scansione:   a => scatto('scan',   a, scansione),
+  aggancio:    a => scatto('lock',   a, aggancio),
+  ingrandisce: a => scatto('zoom',   a, ingrandisce),
+  arrivati:    a => scatto('arriv',  a, arrivati),
+
+  // il finale
+  poltronaEntra: a => scatto('polt',  a, poltronaEntra),
+  cuore:         a => scatto('cuore', a, cuore),
+
+  // i gesti della prima scena
+  sospiro:  a => scatto('sosp',  a, sospiro),
+  occhiali: a => scatto('occh',  a, occhiali),
+  squillo:  a => scatto('squil', a, squillo),
+
+  // i suoni nudi, per provarli a orecchio
   passo, tiro, soffio, tvAccende, botta, festa, porta,
+  voceGerardo, voceTriste,
+
   get acceso(){ return acceso; },
   get disponibile(){ return !!CI_SONO; }
 };
@@ -383,3 +638,4 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 else radice.SUONO = API;
 
 })(typeof self !== 'undefined' ? self : this);
+

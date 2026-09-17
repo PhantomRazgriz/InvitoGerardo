@@ -126,6 +126,47 @@ prova("cambio d'abito ripetuto: rifa' tutto", 10, () => {
   }
 });
 
+prova("le due voci, una volta ciascuna", 12, () => {
+  S.diceTriste(false); S.diceLavora(false);
+  for (let t = 0; t < 40; t++) S.diceTriste(t >= 10 && t < 20);
+  for (let t = 0; t < 40; t++) S.diceLavora(t >= 10 && t < 20);
+});
+
+prova("il tubo che perde: 3 gocce in 78 fotogrammi", 3, () => {
+  S.perdita(0, false);
+  for (let t = 0; t < 78; t++) S.perdita(t, true);
+});
+
+prova("il russare: dentro e fuori, due giri", 6, () => {
+  S.russa(0, false);
+  for (let t = 0; t < 300; t++) S.russa(t, true);
+});
+
+prova("i tre ingrandimenti della mappa (2 suoni ciascuno)", 6, () => {
+  S.ingrandisce(false);
+  for (let g2 = 0; g2 < 3; g2++){
+    for (let t = 0; t < 30; t++) S.ingrandisce(false);
+    for (let t = 0; t < 30; t++) S.ingrandisce(true);
+  }
+});
+
+/* --- nessun suono scollegato, nessun aggancio inesistente --- */
+const pagina = fs.readFileSync("index.html", "utf8");
+const NUDI = new Set(["passo","tiro","soffio","tvAccende","botta","festa",
+                      "porta","voceGerardo","voceTriste","acceso",
+                      "disponibile","sveglia","commuta"]);
+const esposti = Object.keys(S).filter(n => !NUDI.has(n));
+const usati = new Set([...pagina.matchAll(/\bS\.([a-zA-Z]+)\(/g)].map(m => m[1]));
+
+console.log("\ncollegamenti:");
+const orfani = esposti.filter(n => !usati.has(n));
+console.log(orfani.length
+  ? "  suoni mai richiamati dalla pagina: " + orfani.join(", ")
+  : "  tutti i " + esposti.length + " suoni sono richiamati dalla pagina");
+const fantasmi = [...usati].filter(n => typeof S[n] !== "function" && n !== "durata");
+if (fantasmi.length){ male++; console.log("  RICHIAMI INESISTENTI: " + fantasmi.join(", ")); }
+else console.log("  nessun richiamo a suoni che non esistono");
+
 console.log("\nritmo:");
 const PASSO = 14;   // fotogrammi fra un piede e l'altro, da passiDi()
 console.log("  un passo ogni " + PASSO + " fotogrammi = " +
@@ -135,5 +176,6 @@ console.log("  un blip ogni 2 lettere a 26 ms = " +
 
 console.log(male === 0 ? "\ntutto a posto" : "\n" + male + " prove fallite");
 process.exit(male === 0 ? 0 : 1);
+
 
 
