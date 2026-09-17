@@ -140,6 +140,35 @@
   }
   #conferma.viva{ display:block }
 
+  /* LA SCHERMATA D'APERTURA.
+     Non e' un vezzo: i browser vietano qualunque suono prima che l'utente
+     abbia toccato lo schermo, e non c'e' modo di aggirarlo. Il gesto
+     quindi serve comunque - tanto vale chiederlo subito, cosi' la prima
+     scena parte gia' con la musica invece di cominciare muta.
+     Serve anche a un'altra cosa: chi apre l'invito in mezzo alla gente
+     puo' spegnere il suono PRIMA che esca il primo rumore. */
+  #avvio{
+    position:fixed; inset:0; z-index:10;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:14px; padding:24px; text-align:center;
+    background:#0b0a09; cursor:pointer;
+    transition:opacity .4s ease;
+  }
+  #avvio.via{ opacity:0; pointer-events:none }
+  #avvio .grande{
+    margin:0; font-size:clamp(19px,5.4vw,24px); color:var(--chiaro);
+    letter-spacing:.02em; animation:respira 2.4s ease-in-out infinite;
+  }
+  #avvio .piccolo{
+    margin:0; font-size:clamp(12px,3.4vw,14px); color:var(--tenue);
+    line-height:1.5; max-width:30ch;
+  }
+  @keyframes respira{ 0%,100%{ opacity:.55 } 50%{ opacity:1 } }
+
+  /* l'interruttore del suono resta sopra l'apertura: si deve poter
+     spegnere prima di cominciare, non dopo */
+  #audio{ z-index:12 }
+
   /* TELEFONO CORICATO.
      In verticale la cornice sta sotto la tela, e va benissimo. Coricato
      no: su 390 pixel di altezza la cornice se ne prende 242 e alla scena
@@ -174,6 +203,11 @@
 
 <button id="audio" aria-label="suono">&#9834;</button>
 <button id="salta">Dammi solo data e luogo</button>
+
+<div id="avvio">
+  <p class="grande">tocca per cominciare</p>
+  <p class="piccolo">c&rsquo;&egrave; anche il suono &mdash; il tasto &#9834; in alto a sinistra lo spegne</p>
+</div>
 
 <div id="palco"><canvas id="tela"></canvas></div>
 
@@ -938,6 +972,7 @@ function finisci(html){
 let ultimoTocco = 0;
 
 function tocca(){
+  if (!cominciato) return;            // l'apertura non e' ancora stata tolta
   const adesso = Date.now();
   if (adesso - ultimoTocco < 250) return;
   ultimoTocco = adesso;
@@ -1479,7 +1514,33 @@ function disegnaVelo(){
   return true;
 }
 
-disegna();
+/* --------------------------------------------------------------------------
+   L'APERTURA
+   Il racconto non parte da solo. Non per gusto dell'attesa: il suono ha
+   bisogno di un gesto per legge di browser, e se il gesto arrivasse a
+   meta' della prima scena, quella scena sarebbe muta. Chiedendolo subito,
+   tutto comincia insieme.
+   -------------------------------------------------------------------------- */
+const elAvvio = document.getElementById('avvio');
+let cominciato = false;
+
+function comincia(){
+  if (cominciato) return;
+  cominciato = true;
+  // dentro il gesto, che e' l'unico momento in cui i browser lo consentono
+  S.sveglia();
+  elAvvio.classList.add('via');
+  setTimeout(() => elAvvio.remove(), 450);
+  disegna();
+}
+
+/* Due ascolti e non uno: se un browser vecchio non conoscesse pointerdown
+   si resterebbe bloccati sull'apertura, e l'invito finirebbe li'. */
+elAvvio.addEventListener('pointerdown', e => { e.stopPropagation(); comincia(); });
+elAvvio.addEventListener('click',       e => { e.stopPropagation(); comincia(); });
+addEventListener('keydown', e => {
+  if (!cominciato && (e.key === ' ' || e.key === 'Enter')){ e.preventDefault(); comincia(); }
+});
 </script>
 
 <!-- SOLO PER LE PROVE: il selettore delle scene.

@@ -110,7 +110,18 @@ function sveglia(){
    scaricare. Se la rete e' lenta l'invito parte lo stesso, muto di
    sottofondo per qualche secondo: non aspetta nessuno.
    -------------------------------------------------------------------------- */
-function collegaBrano(el){ elBrano = el; }
+function collegaBrano(el){
+  elBrano = el;
+  /* Si comincia a SCARICARLO subito, pur non suonandolo: suonare richiede
+     un gesto, scaricare no. Cosi' quando il gesto arriva il brano e' gia'
+     in memoria e parte insieme alla prima scena, invece di farsi
+     aspettare dieci secondi a scena iniziata.
+     Con un po' di ritardo, per lasciare che la pagina si apra prima: due
+     megabyte in coda ai settanta chilobyte dell'invito, non davanti. */
+  setTimeout(() => {
+    try { el.preload = 'auto'; el.load(); } catch (e) { /* pazienza */ }
+  }, 500);
+}
 
 function avviaBrano(){
   if (!elBrano || !ctx || !acceso) return;

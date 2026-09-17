@@ -124,8 +124,24 @@ function esito(nome, ok, dettaglio){
         /if \(veloVerso\) return;/.test(pagina));
 }
 
+/* ---------------- l'apertura ---------------- */
+{
+  const fs = require("fs");
+  const pagina = fs.readFileSync("index.html", "utf8");
+  console.log("\napertura:");
+  esito("c'e' una schermata che chiede il primo tocco",
+        /id="avvio"/.test(pagina));
+  esito("il racconto non parte prima di quel tocco",
+        !/\n\s*disegna\(\);\s*\n<\/script>/.test(pagina) &&
+        /function comincia\(\)\{[\s\S]*?disegna\(\);/.test(pagina));
+  esito("il suono si accende dentro il gesto",
+        /function comincia\(\)\{[\s\S]*?S\.sveglia\(\);/.test(pagina));
+  esito("si puo' spegnere il suono prima di cominciare",
+        /#audio\{ z-index:12 \}/.test(pagina));
+}
+
 console.log(male === 0
-  ? "\nniente si puo' saltare per sbaglio"
+  ? "\nniente si puo' saltare per sbaglio, e niente comincia muto"
   : "\n" + male + " punti da cui si perde qualcosa");
 process.exit(male === 0 ? 0 : 1);
 
