@@ -37,7 +37,7 @@ const D = {
   segreto1:  "Lui non ne sa niente.",
   segreto2:  "Contiamo su di te per non dirglielo.",
   rsvp:      "Fai sapere che ci sarai",
-  numero:    "349 797 7607"
+  numero:    "352 036 3966"
 };
 
 const C = {
