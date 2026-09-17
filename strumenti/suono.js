@@ -14,7 +14,7 @@ let eventi = [];
 
 function nodo(){
   const nulla = { value: 0, setValueAtTime(){}, linearRampToValueAtTime(){},
-                  exponentialRampToValueAtTime(){} };
+                  exponentialRampToValueAtTime(){}, cancelScheduledValues(){} };
   return { connect(){}, start(){}, stop(){}, gain: nulla, frequency: nulla,
            Q: { value: 0 }, type: "", buffer: null,
            loop: false, loopStart: 0, loopEnd: 0 };
@@ -30,6 +30,7 @@ function Motore(){
       return n;
     },
     createOscillator(){ eventi.push("nota"); return nodo(); },
+    createMediaElementSource(){ return nodo(); },
     createBufferSource(){ eventi.push("fruscio"); return nodo(); },
     createBuffer(){ return { getChannelData(){ return new Float32Array(8000); } }; },
     resume(){}, suspend(){}
@@ -154,7 +155,8 @@ prova("i tre ingrandimenti della mappa (2 suoni ciascuno)", 6, () => {
 const pagina = fs.readFileSync("index.html", "utf8");
 const NUDI = new Set(["passo","tiro","soffio","tvAccende","botta","festa",
                       "porta","voceGerardo","voceTriste","acceso",
-                      "disponibile","sveglia","commuta"]);
+                      "disponibile","sveglia","commuta",
+                      "collegaBrano","volumeMusica","livelloMusica"]);
 const esposti = Object.keys(S).filter(n => !NUDI.has(n));
 const usati = new Set([...pagina.matchAll(/\bS\.([a-zA-Z]+)\(/g)].map(m => m[1]));
 
@@ -176,6 +178,8 @@ console.log("  un blip ogni 2 lettere a 26 ms = " +
 
 console.log(male === 0 ? "\ntutto a posto" : "\n" + male + " prove fallite");
 process.exit(male === 0 ? 0 : 1);
+
+
 
 
 

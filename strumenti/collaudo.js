@@ -204,7 +204,35 @@ for (const [n, alt] of TOCCHI)
     (alt >= 44 ? "" : "   TROPPO PICCOLO"));
 
 /* -------------------------------------------------------------------------
-   3. QUANTO PESA
+   3. IL COLLEGAMENTO A WHATSAPP
+   E' l'unica cosa dell'invito che deve funzionare al primo colpo: se
+   sbaglia destinatario, la conferma si perde e nessuno se ne accorge.
+   ------------------------------------------------------------------------- */
+{
+  const fs2 = require("fs");
+  const pagina = fs2.readFileSync("index.html", "utf8");
+  const pezzi = pagina.match(/const NUMERO = \[([^\]]+)\]/);
+  const numero = pezzi
+    ? pezzi[1].replace(/['"\s]/g, "").split(",").join("")
+    : "";
+  const msg = /const MESSAGGIO =([\s\S]*?);\n/.exec(pagina);
+
+  console.log("\nIL COLLEGAMENTO A WHATSAPP");
+  console.log("  numero        " + (numero || "(nessuno)"));
+  const bene = /^39\d{9,10}$/.test(numero);
+  console.log("  formato       " + (bene
+    ? "prefisso 39 e " + (numero.length - 2) + " cifre: buono"
+    : "SBAGLIATO: serve 39 seguito dal numero, senza + ne' spazi"));
+  console.log("  nel sorgente  " +
+    (pagina.includes(numero) ? "IN CHIARO, i raccoglitori lo trovano"
+                             : "spezzato, i raccoglitori non lo trovano"));
+  console.log("  chiude con    " +
+    (msg && /Sono: /.test(msg[1]) ? "\"Sono: \", cosi' chi conferma si firma"
+                                  : "niente: arriveranno messaggi anonimi"));
+}
+
+/* -------------------------------------------------------------------------
+   4. QUANTO PESA
    ------------------------------------------------------------------------- */
 const fs = require("fs");
 const zlib = require("zlib");

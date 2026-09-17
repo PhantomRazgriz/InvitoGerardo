@@ -19,7 +19,11 @@ const TIPI = {
   ".html":"text/html; charset=utf-8", ".js":"text/javascript; charset=utf-8",
   ".css":"text/css; charset=utf-8",   ".png":"image/png", ".jpg":"image/jpeg",
   ".jpeg":"image/jpeg", ".svg":"image/svg+xml", ".json":"application/json",
-  ".mp3":"audio/mpeg", ".ogg":"audio/ogg", ".ico":"image/x-icon"
+  // il tipo dell'm4a va dichiarato: senza, certi browser lo ricevono come
+  // "roba binaria" e si rifiutano di suonarlo, e il difetto si vedrebbe
+  // solo in locale perche' GitHub Pages lo dichiara da se'
+  ".mp3":"audio/mpeg", ".ogg":"audio/ogg", ".ico":"image/x-icon",
+  ".m4a":"audio/mp4", ".mp4":"video/mp4", ".webm":"audio/webm"
 };
 
 /* --- chi ascolta i cambiamenti --- */

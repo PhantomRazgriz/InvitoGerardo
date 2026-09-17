@@ -164,6 +164,14 @@
 </head>
 <body>
 
+<!-- Il brano di sottofondo. Due formati: il browser ne scarica uno solo,
+     quello che sa leggere. preload="none" perche' l'invito non deve
+     aspettare due megabyte per comparire: il brano parte al primo tocco. -->
+<audio id="brano" loop preload="none" playsinline>
+  <source src="brano.m4a" type="audio/mp4">
+  <source src="brano.mp3" type="audio/mpeg">
+</audio>
+
 <button id="audio" aria-label="suono">&#9834;</button>
 <button id="salta">Dammi solo data e luogo</button>
 
@@ -842,15 +850,26 @@ if (window.ResizeObserver){
   }).observe(elCornice);
 }
 
-/* Il messaggio di conferma, gia' scritto.
-   NUMERO DA CONFERMARE: lasciato vuoto di proposito. Senza numero, wa.me
-   apre WhatsApp e fa scegliere il contatto: funziona per tutti e non
-   sbaglia destinatario. Messo il numero, il messaggio arriva diretto. */
-const NUMERO_WHATSAPP = '';
-const MESSAGGIO = 'Ci sar\u00f2 alla festa di Gerardo! ' +
-  'Sabato 7 novembre 2026, Cavallino Rosso, San Giovanni Rotondo.';
+/* Il messaggio di conferma arriva diritto a Fabio.
 
-elConferma.href = 'https://wa.me/' + NUMERO_WHATSAPP +
+   Il numero e' spezzato in pezzi e rimesso insieme qui, e non e' un
+   vezzo: questa pagina sta su un deposito pubblico e chiunque puo'
+   leggerne il sorgente. I raccoglitori automatici che setacciano il web
+   e GitHub cercano sequenze di cifre che sembrino un telefono, e una
+   sequenza spezzata non la trovano.
+   Non e' una difesa vera - chi vuole leggerlo lo legge, e chiunque prema
+   il pulsante lo vede comparire in WhatsApp, che poi e' lo scopo - ma
+   toglie di mezzo la raccolta automatica, che e' da dove arriva quasi
+   tutto lo spam. Costa una riga. */
+const NUMERO = ['39', '349', '797', '7607'].join('');
+
+/* Il messaggio finisce con "Sono:" aperto, cosi' chi conferma scrive il
+   proprio nome subito dopo. Senza, arriverebbero venti messaggi identici
+   e nessuno saprebbe di chi sono. */
+const MESSAGGIO = 'Ci sar\u00f2 alla festa di Gerardo! ' +
+  'Sabato 7 novembre 2026, Cavallino Rosso, San Giovanni Rotondo.\n\nSono: ';
+
+elConferma.href = 'https://wa.me/' + NUMERO +
   '?text=' + encodeURIComponent(MESSAGGIO);
 
 let iFrase = -1, scrivendo = false, timer = null;
@@ -934,6 +953,7 @@ function tocca(){
 /* Il primo tocco accende il motore del suono. Non prima: i telefoni non lo
    permetterebbero, e comunque questo invito si apre dove capita. */
 const elAudio = document.getElementById('audio');
+S.collegaBrano(document.getElementById('brano'));
 if (!S.disponibile) elAudio.style.display = 'none';
 if (!S.acceso) elAudio.classList.add('muto');
 elAudio.addEventListener('pointerdown', e => e.stopPropagation());

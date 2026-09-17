@@ -25,10 +25,27 @@
 "use strict";
 
 let ctx = null;          // il motore, creato solo quando serve
-let generale = null;     // il volume di tutto
+let generale = null;     // il volume degli effetti
+let freno = null;        // il limitatore in uscita
 let rumore = null;       // un secondo di fruscio, riusato per sempre
+let musica = null;       // il volume del brano di sottofondo
+let elBrano = null;      // l'elemento <audio> della pagina
 let acceso = true;
 let spentoAMano = false;
+
+/* IL VOLUME DEL BRANO, e perche' proprio questo numero.
+
+   Il file e' inciso a -20 LUFS. Gli effetti, passati per il volume
+   generale, vanno da -18 dBFS della botta fino a -34 del blip del testo,
+   che e' il suono piu' piano che deve restare udibile.
+
+   Se il sottofondo stesse a -34 coprirebbe proprio quello. A 0,11 di
+   guadagno il brano si assesta intorno ai -39, cioe' cinque decibel sotto
+   il piu' timido degli effetti: si sente, e non copre niente.
+
+   Non e' un numero da difendere con le unghie - si giudica a orecchio, e
+   il pannello delle prove ha un cursore per cambiarlo mentre si ascolta. */
+let livelloMusica = 0.11;
 
 /* La scelta di chi ascolta sopravvive alla ricarica. Se il browser non ha
    la memoria (o e' in navigazione privata) si tira dritto senza. */
@@ -57,7 +74,7 @@ function sveglia(){
        il testo continua a scrivere. Senza limitatore quei momenti
        gracchiano, e gracchiano solo su certi telefoni: il tipo di difetto
        che non si trova mai provando sul proprio. */
-    const freno = ctx.createDynamicsCompressor();
+    freno = ctx.createDynamicsCompressor();
     freno.threshold.value = -12;
     freno.knee.value = 12;
     freno.ratio.value = 8;
@@ -67,6 +84,11 @@ function sveglia(){
     generale.connect(freno);
     freno.connect(ctx.destination);
 
+    // il brano ha una sua manopola, indipendente da quella degli effetti
+    musica = ctx.createGain();
+    musica.gain.value = livelloMusica;
+    musica.connect(freno);
+
     // un secondo di fruscio bianco: e' la materia prima di passi e svapate
     const n = ctx.sampleRate;
     rumore = ctx.createBuffer(1, n, n);
@@ -75,6 +97,55 @@ function sveglia(){
   }
   // i telefoni tengono il motore fermo finche' non si tocca lo schermo
   if (ctx.state === 'suspended') ctx.resume();
+  avviaBrano();
+}
+
+/* --------------------------------------------------------------------------
+   IL BRANO DI SOTTOFONDO
+
+   Passa da un elemento <audio> della pagina e non da un buffer caricato
+   tutto in memoria: due megabyte scaricati per intero prima di sentire
+   una nota vorrebbero dire mezzo minuto di silenzio su una linea lenta.
+   Cosi' invece comincia appena ne ha abbastanza, e intanto continua a
+   scaricare. Se la rete e' lenta l'invito parte lo stesso, muto di
+   sottofondo per qualche secondo: non aspetta nessuno.
+   -------------------------------------------------------------------------- */
+function collegaBrano(el){ elBrano = el; }
+
+function avviaBrano(){
+  if (!elBrano || !ctx || !acceso) return;
+  if (!elBrano._collegato){
+    try {
+      const sorgente = ctx.createMediaElementSource(elBrano);
+      sorgente.connect(musica);
+      elBrano._collegato = true;
+    } catch (e) { return; }      // gia' collegato, o il browser non vuole
+  }
+  const p = elBrano.play();
+  // se il browser rifiuta non e' un errore da mostrare: si riprova al tocco dopo
+  if (p && p.catch) p.catch(() => {});
+}
+
+/* L'abbassata. Quando succede qualcosa di importante il sottofondo si fa
+   da parte per mezzo secondo e poi risale. Non su tutto: abbassarlo a
+   ogni passo o a ogni lettera lo farebbe respirare di continuo, che e'
+   piu' fastidioso del sottofondo stesso. Solo sulle voci e sui colpi. */
+function abbassa(){
+  if (!musica || !ctx) return;
+  const t = ctx.currentTime;
+  musica.gain.cancelScheduledValues(t);
+  musica.gain.setValueAtTime(musica.gain.value, t);
+  musica.gain.linearRampToValueAtTime(livelloMusica * 0.45, t + 0.05);
+  musica.gain.linearRampToValueAtTime(livelloMusica, t + 0.75);
+}
+
+function volumeMusica(v){
+  livelloMusica = Math.max(0, Math.min(1, v));
+  if (musica && ctx){
+    musica.gain.cancelScheduledValues(ctx.currentTime);
+    musica.gain.setValueAtTime(livelloMusica, ctx.currentTime);
+  }
+  return livelloMusica;
 }
 
 const ora = () => ctx.currentTime;
@@ -228,6 +299,7 @@ function svapata(t, sta){
    -------------------------------------------------------------------------- */
 function tvAccende(){
   if (!vivo()) return;
+  abbassa();
   raffica({ da: 4000, a: 6000, durata: 0.03, volume: 0.16, tipo: 'highpass' });
   nota({ da: 150, a: 58, durata: 0.16, volume: 0.10, tipo: 'sine' });
   raffica({ da: 3200, a: 700, durata: 0.34, volume: 0.07,
@@ -301,6 +373,7 @@ function cambioAbito(t, durata){
    -------------------------------------------------------------------------- */
 function botta(){
   if (!vivo()) return;
+  abbassa();
   nota({ da: 170, a: 38, durata: 0.28, volume: 0.22, tipo: 'sine' });
   raffica({ da: 1100, a: 160, durata: 0.3, volume: 0.16, tipo: 'lowpass' });
   raffica({ da: 5000, a: 2000, durata: 0.05, volume: 0.09, tipo: 'highpass' });
@@ -313,6 +386,7 @@ function botta(){
    -------------------------------------------------------------------------- */
 function festa(){
   if (!vivo()) return;
+  abbassa();
   raffica({ da: 7000, a: 1800, durata: 0.06, volume: 0.2, tipo: 'highpass' });
   nota({ da: 1000, a: 260, durata: 0.1, volume: 0.1, tipo: 'triangle' });
   // le scintille sparse nel tempo: tutte insieme sarebbero un rumore solo
@@ -329,6 +403,7 @@ function festa(){
    -------------------------------------------------------------------------- */
 function porta(){
   if (!vivo()) return;
+  abbassa();
   nota({ da: 190, a: 74, durata: 0.16, volume: 0.15, tipo: 'triangle' });
   raffica({ da: 800, a: 180, durata: 0.2, volume: 0.11, tipo: 'lowpass' });
   raffica({ da: 5200, a: 2600, durata: 0.04, volume: 0.07, tipo: 'highpass',
@@ -382,12 +457,14 @@ function grugnito(o){
 
 // GERARDO: grave, ruvido, e che NON scende - non chiede, ordina
 function voceGerardo(){
+  abbassa();
   grugnito({ sillabe: 3, tono: 104, china: 1.0, lunga: 0.11,
              passo: 0.125, volume: 0.10, tipo: 'sawtooth' });
 }
 
 // la persona triste: piu' alta, morbida, e in discesa
 function voceTriste(){
+  abbassa();
   grugnito({ sillabe: 3, tono: 232, china: 0.78, lunga: 0.13,
              passo: 0.15, volume: 0.055, tipo: 'triangle' });
 }
@@ -505,6 +582,7 @@ function ingrandisce(){
 }
 function arrivati(){
   if (!vivo()) return;
+  abbassa();
   const note = [523, 659, 784];        // do mi sol: e' arrivato, punto
   note.forEach((f, i) =>
     nota({ da: f, a: f, durata: 0.16, volume: 0.06, tipo: 'triangle',
@@ -554,8 +632,13 @@ function commuta(){
   acceso = !acceso;
   spentoAMano = true;
   try { localStorage.setItem('suono', acceso ? 'si' : 'no'); } catch (e) {}
-  if (acceso) sveglia();
-  else if (ctx && ctx.state === 'running') ctx.suspend();
+  if (acceso){ sveglia(); }
+  else {
+    // il brano si ferma davvero: sospendere il motore basterebbe a non
+    // farlo sentire, ma continuerebbe a scorrere e a consumare rete
+    if (elBrano) elBrano.pause();
+    if (ctx && ctx.state === 'running') ctx.suspend();
+  }
   return acceso;
 }
 
@@ -571,7 +654,8 @@ function ogni(nome, t, sta, periodo, fai){
 }
 
 const API = {
-  sveglia, commuta,
+  sveglia, commuta, collegaBrano, volumeMusica,
+  get livelloMusica(){ return livelloMusica; },
 
   /* I richiami che usa la pagina dicono COSA succede, non che suono fare.
      Se un giorno il tonfo della porta diventa un cigolio, la pagina non
@@ -638,4 +722,5 @@ if (typeof module !== 'undefined' && module.exports) module.exports = API;
 else radice.SUONO = API;
 
 })(typeof self !== 'undefined' ? self : this);
+
 

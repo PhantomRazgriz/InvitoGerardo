@@ -120,6 +120,13 @@ stile.textContent = `
   #prova button:hover{ color:#f2ece2; border-color:#6d6153 }
   #prova button b{ color:#d9a93a; font-weight:700; margin-right:5px }
   #prova.chiuso .voce{ display:none }
+  #prova .manopola{
+    flex:0 0 100%; display:flex; align-items:center; gap:7px;
+    color:#b9ae9e; background:rgba(14,12,10,.86);
+    border:1px solid #3a332c; border-radius:6px; padding:6px 8px;
+  }
+  #prova .manopola input{ flex:1; accent-color:#d9a93a; min-width:90px }
+  #prova .manopola b{ color:#d9a93a; min-width:34px; text-align:right }
 `;
 document.head.appendChild(stile);
 
@@ -142,6 +149,29 @@ for (const [tasto, nome, aiuto, vai] of SALTI){
   b.addEventListener('pointerdown', e => e.stopPropagation());
   pannello.appendChild(b);
   perTasto.set(tasto, vai);
+}
+
+/* Il cursore del sottofondo. Il volume giusto e' l'unica cosa di tutto
+   questo lavoro che non si puo' decidere guardando dei numeri: si sposta
+   ascoltando, e quando suona bene si legge il valore. */
+if (window.SUONO && window.SUONO.disponibile){
+  const riga = document.createElement('div');
+  riga.className = 'manopola voce';
+  const etichetta = document.createElement('span');
+  etichetta.textContent = 'musica';
+  const cursore = document.createElement('input');
+  cursore.type = 'range';
+  cursore.min = 0; cursore.max = 40; cursore.step = 1;
+  cursore.value = Math.round(window.SUONO.livelloMusica * 100);
+  const valore = document.createElement('b');
+  valore.textContent = cursore.value / 100;
+  cursore.addEventListener('pointerdown', e => e.stopPropagation());
+  cursore.addEventListener('input', () => {
+    const v = window.SUONO.volumeMusica(cursore.value / 100);
+    valore.textContent = v.toFixed(2);
+  });
+  riga.append(etichetta, cursore, valore);
+  pannello.appendChild(riga);
 }
 
 const chiudi = document.createElement('button');
