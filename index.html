@@ -567,6 +567,7 @@ function nuovoGestoDivano(){
 }
 
 function entraInSalotto(){
+  S.volumeDaCapo();          // il volume riparte da zero, e i suoi scatti pure
   vista = VISTE.salotto;
   ridimensiona();
   stato = 'racconto2';
@@ -635,6 +636,7 @@ function disegna(){
 
     S.camminata(t, azione === 'cammina');
     S.svapata(atto.t, azione === 'svapo');
+    S.cambioAbito(stato === 'piroetta' ? tPiroetta : 0, PIROETTA);
 
     A.attore(P, px, SUOLO, {
       azione: azione === 'occhiali' ? 'fermo' : azione,
@@ -653,6 +655,10 @@ function disegnaSalotto(){
   tSalotto++;
   const SAL = window.SALOTTO, GP = window.PIGIAMA;
   const s = statoSalotto();
+
+  // la televisione quando si accende, e uno scatto per ogni pressione
+  S.tv(s.tvAccesa);
+  S.volume(s.volume, s.volume >= 70);
 
   // 1. la stanza. Non cambia mai un pixel: la si disegna al primo
   //    fotogramma e da lì in poi si ricopia il buffer, che costa una
@@ -701,6 +707,7 @@ function disegnaSalotto(){
   } else {
     const azione = (s.posa === 'prende' || s.posa === 'punta') ? 'fermo' : 'cammina';
     S.camminata(s.t, azione === 'cammina');
+
     A.attore(P, s.px, SAL.SEDUTA + 12, { azione, t: s.t, pigiama: true });
     // braccio allungato verso il bracciolo, o che punta alla televisione
     if (s.posa === 'prende' || s.posa === 'punta'){
@@ -1196,6 +1203,7 @@ function disegnaCaduta(){
      e i trattini della rabbia, facendolo sembrare una statua. */
   tCaduta++;
   const s = F.statoCaduta(tCaduta);
+  S.impatto(s.fase === 'botta');
 
   pulisciTela(F.COL.buio);
   F.suolo(P, 0);
@@ -1296,6 +1304,11 @@ function disegnaScelta(){
   if (esito) tEsito++;
 
   const s = F.statoScelta(tScelta, esito, tEsito, rifiuti);
+
+  // lo schiocco dei coriandoli parte col si'; la porta si chiude nel
+  // momento esatto in cui sparisce dentro il vano
+  S.coriandoli(esito === 'si');
+  S.portaChiusa(esito === 'no' && !s.mostraLui);
 
   if (s.fase === 'addio'){
     // la scena resta, e il nero le si stende sopra

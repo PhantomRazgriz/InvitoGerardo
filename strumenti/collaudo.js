@@ -210,7 +210,7 @@ const fs = require("fs");
 console.log("\nPESO DI QUELLO CHE SI SCARICA");
 let tot = 0;
 for (const f of ["index.html", "arte.js", "salotto.js", "pigiama.js",
-                 "facile.js", "mappa.js", "finale.js"]){
+                 "facile.js", "mappa.js", "finale.js", "suono.js"]){
   const kb = fs.statSync(f).size / 1024;
   tot += kb;
   console.log("  " + f.padEnd(14) + kb.toFixed(1).padStart(6) + " KB");
@@ -219,6 +219,7 @@ console.log("  " + "TOTALE".padEnd(14) + tot.toFixed(1).padStart(6) + " KB" +
   (tot < 200 ? "   (si apre subito anche in 3G)" : "   pesante"));
 const social = fs.statSync("anteprime/social.png").size / 1024;
 console.log("  anteprima social " + social.toFixed(1) + " KB (solo per WhatsApp, non per la pagina)");
+
 
 
 
