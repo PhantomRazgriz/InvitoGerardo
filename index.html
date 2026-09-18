@@ -267,7 +267,8 @@ const ATTI = [
     'Ma parliamo dell\u2019evento.',
     'Ecco il luogo dove avverr\u00e0 la festa.',
     // INDIRIZZO DA CONFERMARE: qui va la via esatta del Cavallino Rosso
-    '<span class="nome">Cavallino Rosso</span><br>San Giovanni Rotondo (FG)<br>' +
+    '<span class="nome">Cavallino Rosso</span><br>' +
+      'Via Tratturo delle Corse 14, San Giovanni Rotondo (FG)<br>' +
       '<span class="nome">sabato 7 novembre 2026, ore 19:30</span>'
   ],
   [
@@ -897,12 +898,14 @@ if (window.ResizeObserver){
    tutto lo spam. Costa una riga. */
 const NUMERO = ['39', '352', '036', '3966'].join('');
 
-/* Il messaggio finisce con "Sono:" aperto, cosi' chi conferma scrive il
-   proprio nome subito dopo. Senza, arriverebbero venti messaggi identici
-   e nessuno saprebbe di chi sono. */
+/* Il messaggio finisce con "Numero persone:" aperto, cosi' chi conferma
+   scrive quanti sono subito dopo. Chi manda si sa gia' - WhatsApp dice
+   sempre da che numero arriva - mentre quanti posti servono al ristorante
+   non lo direbbe nessuno se non glielo si chiedesse. */
 const MESSAGGIO = 'Ci sar\u00f2 alla festa di Gerardo! ' +
-  'Sabato 7 novembre 2026 alle 19:30, Cavallino Rosso, San Giovanni Rotondo.' +
-  '\n\nSono: ';
+  'Sabato 7 novembre 2026 alle 19:30, Cavallino Rosso, ' +
+  'Via Tratturo delle Corse 14, San Giovanni Rotondo.' +
+  '\n\nNumero persone: ';
 
 elConferma.href = 'https://wa.me/' + NUMERO +
   '?text=' + encodeURIComponent(MESSAGGIO);
@@ -1568,6 +1571,7 @@ addEventListener('keydown', e => {
 
 </body>
 </html>
+
 
 
 

@@ -37,9 +37,15 @@ const D = {
   ora:       "ore 19.30",
   locale:    "Cavallino Rosso",
   citta:     "San Giovanni Rotondo (FG)",
-  // VIA DA RIEMPIRE: finche' e' vuota la riga non viene disegnata affatto,
-  // che e' meglio di un invito con scritto "[indirizzo]"
-  via:       "",
+  /* DA CONFERMARE. Cinque fonti indipendenti danno "Via Tratturo delle
+     Corse, 14": Tripadvisor, alloggiopuglia, primiristoranti, motorionline
+     e altairguide. Altre due danno "Contrada Piano del Marchese, 14",
+     che in aperta campagna potrebbe essere lo stesso posto detto in un
+     altro modo - il tratturo e la contrada che attraversa - ma potrebbe
+     anche non esserlo.
+     Se resta vuota, la riga non viene disegnata affatto: meglio un invito
+     senza via che un invito che manda la gente nel posto sbagliato. */
+  via:       "Via Tratturo delle Corse, 14",
   segreto1:  "Lui non ne sa niente.",
   segreto2:  "Mi raccomando: non dirglielo.",
   rsvp:      "Fammi sapere che ci sei",
@@ -154,9 +160,11 @@ filetto(806, 300, C.oro, 2);
 scritta(D.giorno.toUpperCase(), { y: 912, corpo: 46, spazio: 4, font: "Archivo" });
 scritta(D.ora,                  { y: 976, corpo: 44, font: "Archivo", colore: C.oro });
 
+/* Un indirizzo si legge dalla porta al paese: prima la via, poi la citta'.
+   Invertiti sembrano due informazioni slegate invece di un indirizzo. */
 scritta(D.locale, { y: 1110, corpo: 66 });
-scritta(D.citta,  { y: 1164, corpo: 34, font: "Archivo" });
-if (D.via) scritta(D.via, { y: 1210, corpo: 32, font: "Archivo" });
+if (D.via) scritta(D.via, { y: 1164, corpo: 34, font: "Archivo" });
+scritta(D.citta,  { y: D.via ? 1210 : 1164, corpo: 34, font: "Archivo" });
 
 const giu = D.via ? 46 : 0;
 
