@@ -226,9 +226,12 @@ for (const [n, alt] of TOCCHI)
   console.log("  nel sorgente  " +
     (pagina.includes(numero) ? "IN CHIARO, i raccoglitori lo trovano"
                              : "spezzato, i raccoglitori non lo trovano"));
+  /* Chiede il numero di persone, non il nome: il nome WhatsApp lo dice gia'
+     da se', quanti sono no. */
   console.log("  chiude con    " +
-    (msg && /Sono: /.test(msg[1]) ? "\"Sono: \", cosi' chi conferma si firma"
-                                  : "niente: arriveranno messaggi anonimi"));
+    (msg && /Numero persone: /.test(msg[1])
+      ? "\"Numero persone: \", per contare i posti"
+      : "niente: non si sapra' quanti sono"));
 }
 
 /* -------------------------------------------------------------------------
@@ -253,6 +256,7 @@ console.log("  " + "in rete".padEnd(14) + compresso.toFixed(1).padStart(6) + " K
   (compresso < 150 ? "   (si apre subito anche in 3G)" : "   da alleggerire"));
 const social = fs.statSync("anteprime/social.png").size / 1024;
 console.log("  anteprima social " + social.toFixed(1) + " KB (solo per WhatsApp, non per la pagina)");
+
 
 
 
