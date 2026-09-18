@@ -89,6 +89,6 @@ http.createServer((req, res) => {
   console.log("    su questo computer   http://localhost:" + PORTA);
   for (const ip of indirizzi)
     console.log("    dal telefono         http://" + ip + ":" + PORTA);
-  console.log("\n    laboratorio          http://localhost:" + PORTA + "/laboratorio.html");
   console.log("\n  Ctrl+C per fermarlo.\n");
 });
+

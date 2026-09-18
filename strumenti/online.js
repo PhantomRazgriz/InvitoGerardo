@@ -1,94 +1,75 @@
 /* Controlla il sito PUBBLICATO, non i file sul disco.
 
-   La differenza conta: quello che c'e' in locale e quello che arriva a
-   chi apre il link sono due cose diverse, e l'unico modo di esserne
-   sicuri e' scaricare il secondo ed eseguirlo.
+   La differenza conta: quello che sta in locale e quello che riceve chi
+   apre il link sono due cose diverse, e l'unico modo di esserne sicuri e'
+   scaricare il secondo.
 
-   Verifica in particolare che gli arnesi da lavoro - il selettore delle
-   scene e il cursore del volume - restino spenti per chiunque non sia
-   sulla rete di casa.
+   Verifica tre cose:
+   - che ci sia tutto quello che serve a chi riceve l'invito;
+   - che NON ci sia piu' niente del cantiere - il selettore delle scene, il
+     cursore del volume, la pagina di laboratorio;
+   - che le foto di Gerardo non siano finite online.
 
      node strumenti/online.js
 */
 const https = require("https");
-const fs = require("fs");
 
 const SITO = "https://phantomrazgriz.github.io/InvitoGerardo";
 
-function scarica(percorso){
-  return new Promise((ok, no) => {
+function chiedi(percorso){
+  return new Promise(ok => {
     https.get(SITO + percorso, r => {
-      if (r.statusCode !== 200){ no(new Error(percorso + ": " + r.statusCode)); return; }
       let d = "";
       r.on("data", c => d += c);
-      r.on("end", () => ok(d));
-    }).on("error", no);
+      r.on("end", () => ok({ stato: r.statusCode, corpo: d }));
+    }).on("error", () => ok({ stato: 0, corpo: "" }));
   });
 }
 
-// gli indirizzi da cui qualcuno aprira' davvero l'invito
-const VERI = ["phantomrazgriz.github.io", "gerardo60.it", "www.gerardo60.it"];
-// e quelli di lavoro, dove gli arnesi devono esserci
-const CASA = ["localhost", "127.0.0.1", "192.168.1.9", "100.82.105.15"];
+let male = 0;
+function esito(nome, ok, dettaglio){
+  if (!ok) male++;
+  console.log("  " + nome.padEnd(40) + (ok ? "ok" : "NO") +
+    (dettaglio ? "   " + dettaglio : ""));
+}
 
 (async () => {
-  let male = 0;
-  const prova = fs.readFileSync("prova.js", "utf8");
-  const vivo = await scarica("/prova.js");
-
-  console.log("il file pubblicato e quello sul disco:");
-  const uguali = vivo.replace(/\r\n/g, "\n") === prova.replace(/\r\n/g, "\n");
-  console.log("  " + (uguali ? "stesso contenuto (cambiano solo i fine riga)"
-                              : "DIVERSI: online c'e' altro"));
-  if (!uguali) male++;
-
-  /* La condizione si prende dal file SCARICATO e si esegue davvero, con
-     l'indirizzo giusto al posto di location. Leggerla non basterebbe:
-     conta come si comporta. */
-  const pezzo = /const LOCALE =([\s\S]*?);\n/.exec(vivo);
-  if (!pezzo){ console.log("  NON TROVO LA CONDIZIONE"); process.exit(1); }
-
-  const acceso = h => {
-    const location = { hostname: h, protocol: "https:" };
-    return eval("(" + pezzo[1] + ")");
-  };
-
-  console.log("\ngli arnesi da lavoro (selettore scene, cursore volume):");
-  for (const h of VERI){
-    const c = acceso(h);
-    if (c) male++;
-    console.log("  " + h.padEnd(26) + (c ? "COMPAIONO   <-- ERRORE" : "spenti"));
-  }
-  for (const h of CASA){
-    const c = acceso(h);
-    if (!c) male++;
-    console.log("  " + h.padEnd(26) + (c ? "attivi (giusto: e' casa)" : "SPENTI   <-- servono"));
+  /* --- quello che DEVE esserci --- */
+  console.log("quello che serve a chi riceve l'invito:");
+  const SERVONO = ["/", "/arte.js", "/salotto.js", "/pigiama.js", "/facile.js",
+                   "/mappa.js", "/finale.js", "/suono.js",
+                   "/brano.m4a", "/brano.mp3", "/anteprime/social.png"];
+  for (const p of SERVONO){
+    const r = await chiedi(p);
+    esito(p, r.stato === 200, r.stato !== 200 ? "risposta " + r.stato : "");
   }
 
-  /* Il cursore del volume sta dentro la stessa guardia? Se qualcuno lo
-     spostasse fuori, comparirebbe online senza che nessuno se ne accorga. */
-  const dopoGuardia = vivo.indexOf("if (!LOCALE)");
-  const cursore = vivo.indexOf("type = 'range'");
-  const selettore = vivo.indexOf("const SALTI");
-  console.log("\ndentro la guardia:");
-  console.log("  cursore del volume   " +
-    (cursore > dopoGuardia ? "si'" : "NO   <-- comparirebbe online"));
-  console.log("  selettore delle scene " +
-    (selettore > dopoGuardia ? "si'" : "NO   <-- comparirebbe online"));
-  if (cursore < dopoGuardia || selettore < dopoGuardia) male++;
-
-  // e quello che INVECE deve esserci per tutti
-  const pagina = await scarica("/");
-  console.log("\nquello che deve esserci per chi riceve l'invito:");
+  const pagina = (await chiedi("/")).corpo;
   for (const [n, c] of [["interruttore del suono", 'id="audio"'],
+                        ["schermata d'apertura",   'id="avvio"'],
                         ["brano di sottofondo",    'id="brano"'],
                         ["pulsanti si' e no",      'id="si"'],
-                        ["conferma WhatsApp",      'id="conferma"']]){
-    const ok = pagina.includes(c);
-    if (!ok) male++;
-    console.log("  " + n.padEnd(24) + (ok ? "c'e'" : "MANCA"));
+                        ["conferma WhatsApp",      'id="conferma"']])
+    esito(n, pagina.includes(c));
+
+  /* --- quello che NON deve esserci --- */
+  console.log("\nquello che doveva restare in cantiere:");
+  for (const [n, p] of [["selettore delle scene", "/prova.js"],
+                        ["pagina di laboratorio", "/laboratorio.html"]]){
+    const r = await chiedi(p);
+    esito(n + " rimosso", r.stato === 404, "risposta " + r.stato);
+  }
+  esito("la pagina non lo richiama piu'", !pagina.includes("prova.js"));
+
+  /* --- le foto --- */
+  console.log("\nle foto di Gerardo:");
+  for (const p of ["/materiale/Sala%201.jpeg", "/materiale/"]){
+    const r = await chiedi(p);
+    esito("fuori dal sito (" + p + ")", r.stato === 404, "risposta " + r.stato);
   }
 
-  console.log(male === 0 ? "\ntutto a posto" : "\n" + male + " problemi");
+  console.log(male === 0
+    ? "\nil sito e' quello giusto: c'e' tutto l'invito e niente del cantiere"
+    : "\n" + male + " problemi");
   process.exit(male === 0 ? 0 : 1);
-})().catch(e => { console.log("non riesco a controllare: " + e.message); process.exit(1); });
+})();
